@@ -35,9 +35,16 @@ CHOICES_FILE="/kaggle/working/.kgpu_choices"
 USE_CASE=""
 NON_INTERACTIVE=0
 
-# Auth defaults (pre-configured)
-NGROK_AUTHTOKEN_DEFAULT="1qb36HRiTApsnt5IVQ1bDWAbdk7_5snrnJJ8eBdxbZxhP625f"
-COMFYUI_PASS_DEFAULT="MyKagglePass2026!"
+# Unified auth config (edit config/auth.env and git push to change password everywhere)
+AUTH_ENV="$WORKDIR/config/auth.env"
+if [ -f "$AUTH_ENV" ]; then
+  # shellcheck disable=SC1090
+  source "$AUTH_ENV"
+fi
+# Fallbacks if auth.env is missing or incomplete
+KGPU_USERNAME="${KGPU_USERNAME:-kaggle}"
+KGPU_PASSWORD="${KGPU_PASSWORD:-KaggleGPU2026!SecureAccess}"
+NGROK_AUTHTOKEN="${NGROK_AUTHTOKEN:-1qb36HRiTApsnt5IVQ1bDWAbdk7_5snrnJJ8eBdxbZxhP625f}"
 
 # --- Parse CLI args ---
 while [[ $# -gt 0 ]]; do
@@ -152,11 +159,10 @@ success "Use case: $USE_CASE"
 # STEP 3: Auth (uses Kaggle Secrets or embedded defaults)
 # =========================================================================
 echo -e "${BOLD}${CYAN}▶ Step 3: Authentication${NC}"
-NGROK_TOKEN="${NGROK_AUTHTOKEN:-$NGROK_AUTHTOKEN_DEFAULT}"
-COMFYUI_PASS="${COMFYUI_AUTH_PASSWORD:-$COMFYUI_PASS_DEFAULT}"
-export NGROK_AUTHTOKEN="$NGROK_TOKEN"
-export COMFYUI_AUTH_PASSWORD="$COMFYUI_PASS"
-success "Auth configured (ngrok: ${NGROK_TOKEN:0:8}..., user: kaggle)"
+# Use unified password from auth.env (or fallback)
+export NGROK_AUTHTOKEN="${NGROK_AUTHTOKEN}"
+export COMFYUI_AUTH_PASSWORD="$KGPU_PASSWORD"
+success "Auth configured (ngrok: ${NGROK_AUTHTOKEN:0:8}..., user: $KGPU_USERNAME, pass: ${KGPU_PASSWORD:0:6}...)"
 
 # =========================================================================
 # STEP 4: Review & Confirm
@@ -196,8 +202,9 @@ INSTALL_FLUX_DEV=$INSTALL_FLUX_DEV
 INSTALL_MINIMAX_H3=$INSTALL_MINIMAX_H3
 INSTALL_SDXL=$INSTALL_SDXL
 INSTALL_LLAMA=$INSTALL_LLAMA
-NGROK_TOKEN=$NGROK_TOKEN
-COMFYUI_PASS=$COMFYUI_PASS
+NGROK_TOKEN=$NGROK_AUTHTOKEN
+KGPU_USERNAME=$KGPU_USERNAME
+KGPU_PASSWORD=$KGPU_PASSWORD
 EOF
 
 # =========================================================================
@@ -299,7 +306,9 @@ echo -e "═══════════════════════�
 echo ""
 echo "  Start services:  ${CYAN}bash $WORKDIR/start.sh${NC}"
 echo "  Your ngrok URL will appear after start."
-echo "  Auth: kaggle / $COMFYUI_PASS"
+echo "  Auth: $KGPU_USERNAME / $KGPU_PASSWORD"
+echo ""
+echo "  To change password: edit config/auth.env → git commit → git push → re-run install.sh"
 echo ""
 echo "  Test: curl -u kaggle:$COMFYUI_PASS https://YOUR-URL.ngrok-free.app/api/health"
 echo ""

@@ -49,22 +49,30 @@ else
  warn "No choices file found. Starting all core services with defaults."
 fi
 
-# --- Auth checks ---
-COMFYUI_AUTH_PASSWORD="${COMFYUI_AUTH_PASSWORD:-${COMFYUI_PASS:-}}"
-NGROK_AUTHTOKEN="${NGROK_AUTHTOKEN:-${NGROK_TOKEN:-}}"
+# --- Load unified auth config ---
+AUTH_ENV="$WORKDIR/config/auth.env"
+if [ -f "$AUTH_ENV" ]; then
+ # shellcheck disable=SC1090
+ source "$AUTH_ENV"
+fi
+
+# Fallbacks
+KGPU_USERNAME="${KGPU_USERNAME:-kaggle}"
+KGPU_PASSWORD="${KGPU_PASSWORD:-KaggleGPU2026!SecureAccess}"
+NGROK_AUTHTOKEN="${NGROK_AUTHTOKEN:-${NGROK_TOKEN:-1qb36HRiTApsnt5IVQ1bDWAbdk7_5snrnJJ8eBdxbZxhP625f}}"
+
+export COMFYUI_AUTH_PASSWORD="$KGPU_PASSWORD"
+export NGROK_AUTHTOKEN
 
 if [ -z "$COMFYUI_AUTH_PASSWORD" ]; then
- err "COMFYUI_AUTH_PASSWORD not set. Add via Kaggle Secrets or run install.sh."
+ err "KGPU_PASSWORD not set. Edit config/auth.env or run install.sh."
  exit 1
 fi
 
 if [ "$INSTALL_NGROK" -eq 1 ] && [ -z "$NGROK_AUTHTOKEN" ]; then
- err "NGROK_AUTHTOKEN not set but ngrok is selected. Add via Kaggle Secrets or run install.sh."
+ err "NGROK_AUTHTOKEN not set. Edit config/auth.env or run install.sh."
  exit 1
 fi
-
-export COMFYUI_AUTH_PASSWORD
-export NGROK_AUTHTOKEN
 
 # --- Kill stale processes ---
 info "Cleaning up stale processes..."
@@ -182,7 +190,7 @@ echo " Mode: $MODE"
 if [ -f /kaggle/working/ngrok_url.txt ] && [ "$INSTALL_NGROK" -eq 1 ]; then
  echo " 🌐 URL: $(cat /kaggle/working/ngrok_url.txt)"
 fi
-echo " 🔑 Auth: kaggle / $COMFYUI_AUTH_PASSWORD"
+echo " 🔑 Auth: $KGPU_USERNAME / $KGPU_PASSWORD"
 echo ""
 echo -e " ${BOLD}Active services:${NC}"
 [ "$INSTALL_COMFYUI" -eq 1 ] && echo " ✓ ComfyUI (:8188)"
