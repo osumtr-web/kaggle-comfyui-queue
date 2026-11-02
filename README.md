@@ -99,18 +99,38 @@ To enable multi-mode, set `KGPU_MODE=multi` as a Kaggle Secret. See the [Multi-A
 
 ---
 
-## Quick Start
+## Quick Start (2 commands)
 
-1. **Upload this project to Kaggle** (or clone via git in a notebook cell):
-   ```bash
-   !git clone https://github.com/YOUR_USERNAME/kaggle-comfyui-queue.git /kaggle/working/kaggle-comfyui-queue
-   ```
+Paste into a Kaggle notebook cell and run:
 
-2. **Open `setup.ipynb`** and click **"Run All"** — the notebook handles everything: dependency install, ComfyUI setup, service launch, and tunnel creation.
+```bash
+# Step 1: Install (pick your use case interactively)
+!git clone https://github.com/osumtr-web/kaggle-comfyui-queue.git /kaggle/working/kaggle-comfyui-queue
+!bash /kaggle/working/kaggle-comfyui-queue/install.sh
 
-3. **When Cell 5 prints your ngrok URL**, open it in your browser and authenticate with username `kaggle` and your `COMFYUI_AUTH_PASSWORD`.
+# Step 2: Start services
+!bash /kaggle/working/kaggle-comfyui-queue/start.sh
+```
 
-That's it. Your GPU generation server is live and accessible from anywhere.
+The installer asks **one question**: pick your use case:
+
+| Option | What You Get | Pre-installed Models |
+|--------|-------------|---------------------|
+| **1) 🎨 ComfyUI** | Image & video generation | FLUX.1-dev + MiniMax H3 |
+| **2) 🧠 LLM** | Text generation & chat | Llama 3.2 3B via Ollama |
+| **3) 📊 ML** | Classification & embeddings | CLIP + BGE (add more via API) |
+
+Everything else (components, auth, ngrok, directories) is pre-configured. Your ngrok URL appears after `start.sh` completes. Authenticate with `kaggle` / your password.
+
+### Non-interactive / scripted install
+
+```bash
+# Skip all prompts, use defaults (ComfyUI mode)
+!bash install.sh --non-interactive
+
+# Specify use case + private repo token
+!bash install.sh --case llm --token ghp_YOUR_GITHUB_TOKEN
+```
 
 ---
 

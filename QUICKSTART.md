@@ -1,63 +1,61 @@
-# 🚀 Kaggle One-Click Starter
+# 🚀 Kaggle GPU-as-a-Service — Quick Start
 
-Your repo is pushed. Here's the 30-second deployment.
+## 2 Commands. Done.
 
-## Step 1 — Add 2 Secrets (one-time)
-
-In your Kaggle notebook → **Add-ons → Secrets**:
-
-| Name | Value |
-|------|-------|
-| `NGROK_AUTHTOKEN` | Get yours at https://dashboard.ngrok.com/get-started/your-authtoken |
-| `COMFYUI_AUTH_PASSWORD` | Pick any password, e.g. `MyKagglePass2026!` |
-
-## Step 2 — Create a New Notebook & Paste This Cell
-
-```python
-# === KAGGLE ONE-CLICK STARTER ===
-# Paste this entire block into Cell 1 of a fresh Kaggle notebook, then hit Run All.
-
-import os, subprocess, sys
-
-# --- Your GitHub repo (change this!) ---
-REPO_URL = "https://github.com/YOUR_USERNAME/kaggle-comfyui-queue.git"
-
-# --- Clone or update repo ---
-if not os.path.exists("kaggle-comfyui-queue"):
-    subprocess.run(["git", "clone", REPO_URL], check=True)
-else:
-    subprocess.run(["git", "-C", "kaggle-comfyui-queue", "pull"], check=True)
-
-# --- Verify secrets ---
-missing = []
-if not os.environ.get("NGROK_AUTHTOKEN"): missing.append("NGROK_AUTHTOKEN")
-if not os.environ.get("COMFYUI_AUTH_PASSWORD"): missing.append("COMFYUI_AUTH_PASSWORD")
-if missing:
-    print(f"❌ Missing secrets: {', '.join(missing)}")
-    print("   Go to Add-ons → Secrets and add them, then re-run this cell.")
-    sys.exit(1)
-
-# --- Launch the real notebook ---
-print("✅ Secrets OK. Launching setup.ipynb...")
-from IPython.display import display, HTML
-display(HTML(f"""
-<h2>✅ Ready! Open the full setup notebook:</h2>
-<p><a href="/kaggle/input/kaggle-comfyui-queue/setup.ipynb" target="_blank">
-   Click here to open setup.ipynb → then Run All
-</a></p>
-<p>Or paste this into the next cell to run it inline:</p>
-<pre>%run /kaggle/input/kaggle-comfyui-queue/setup.ipynb</pre>
-"""))
-```
-
-## Step 3 — Run All
-
-Cell 1 clones your repo and checks secrets. Once it prints the link, open `setup.ipynb` and click **Run All**.
-
-When Cell 5 prints your ngrok URL, you're live. Use it from your laptop:
+Paste into a Kaggle notebook cell:
 
 ```bash
-curl -u kaggle:MyKagglePass2026! https://YOUR-NGROK-URL.ngrok-free.app/api/health
+# Step 1: Clone & install (pick your use case)
+!git clone https://github.com/osumtr-web/kaggle-comfyui-queue.git /kaggle/working/kaggle-comfyui-queue
+!bash /kaggle/working/kaggle-comfyui-queue/install.sh
+
+# Step 2: Start services
+!bash /kaggle/working/kaggle-comfyui-queue/start.sh
 ```
 
-That's it. 🎉
+## What You'll See
+
+The installer asks **one question**:
+
+| Pick | Use Case | Pre-installed |
+|------|----------|---------------|
+| **1** | 🎨 ComfyUI — Image & Video | FLUX.1-dev + MiniMax H3 |
+| **2** | 🧠 LLM — Text Generation | Llama 3.2 3B (Ollama) |
+| **3** | 📊 ML — Classification & Embeddings | CLIP + BGE |
+
+Everything else is automatic: components, auth, ngrok, directories, model downloads.
+
+After `start.sh`, your ngrok URL appears. Use it from anywhere:
+
+```bash
+curl -u kaggle:MyKagglePass2026! https://YOUR-URL.ngrok-free.app/api/health
+```
+
+## Private Repo? Add Your Token
+
+```bash
+!bash install.sh --token ghp_YOUR_GITHUB_TOKEN
+```
+
+Or paste when prompted interactively.
+
+## Non-Interactive (CI / scripted)
+
+```bash
+!bash install.sh --case comfyui --non-interactive
+!bash start.sh
+```
+
+## Auth Defaults (pre-configured)
+
+| Secret | Default Value | Override |
+|--------|--------------|----------|
+| `NGROK_AUTHTOKEN` | Embedded in install.sh | Set Kaggle Secret or paste at prompt |
+| `COMFYUI_AUTH_PASSWORD` | `MyKagglePass2026!` | Set Kaggle Secret or paste at prompt |
+
+Kaggle Secrets take priority over embedded defaults.
+
+## That's It
+
+No secrets to configure upfront. No component toggles. No model selection menus.
+Just pick your use case and go. 🎉
