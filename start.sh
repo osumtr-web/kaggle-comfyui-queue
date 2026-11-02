@@ -131,7 +131,7 @@ fi
 # --- Start ngrok ---
 if [ "$INSTALL_NGROK" -eq 1 ]; then
  info "Starting ngrok tunnel..."
- nohup python3 scripts/ngrok_launcher.py > /kaggle/working/ngrok.log 2>&1 &
+ COMFYUI_AUTH_PASSWORD="$KGPU_PASSWORD" NGROK_AUTHTOKEN="$NGROK_AUTHTOKEN" nohup python3 scripts/ngrok_launcher.py > /kaggle/working/ngrok.log 2>&1 &
  NGROK_PID=$!
  echo " PID: $NGROK_PID"
 

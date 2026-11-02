@@ -274,11 +274,11 @@ download_model() {
  [ -f "$dest" ] && { info "Already have $(basename "$dest")"; return 0; }
  info "Downloading $(basename "$dest")..."
  mkdir -p "$(dirname "$dest")"
- local hf_header=""
+ local curl_auth=""
  if [ -n "${HF_TOKEN:-}" ]; then
-   hf_header="--header=Authorization: Bearer ${HF_TOKEN}"
+   curl_auth="-H Authorization:\ Bearer\ ${HF_TOKEN}"
  fi
- wget --retry-connrefused --tries=3 -c -q --show-progress $hf_header -O "$dest" "$url" || {
+ curl -fSL --retry 3 --retry-delay 5 -C - $curl_auth -o "$dest" "$url" || {
    warn "Failed: $(basename "$dest")"; rm -f "$dest"; return 1;
  }
  success "Downloaded: $(basename "$dest")"
