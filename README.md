@@ -58,10 +58,42 @@ Key operational features:
 
 | Requirement | Details |
 |-------------|---------|
-| **Kaggle Account** | Phone-verified account with active GPU quota (~30 hrs/week on T4 x2) |
-| **ngrok Account** | Free account with authtoken saved as Kaggle Secret `NGROK_AUTHTOKEN` |
+| **Kaggle Account(s)** | Phone-verified account(s) with active GPU quota (~30 hrs/week each on T4 x2) |
+| **ngrok Account** | Free or paid account — see setup below |
 | **ComfyUI Auth** | Password saved as Kaggle Secret `COMFYUI_AUTH_PASSWORD` |
 | **Skills** | Basic familiarity with Python, bash, and REST APIs |
+
+### ngrok Setup (Required)
+
+ngrok creates the HTTPS tunnel from Kaggle's isolated container to your laptop/API client. Without it, you cannot access the service remotely.
+
+1. **Create a free account** at https://dashboard.ngrok.com/signup
+2. **Get your authtoken** at https://dashboard.ngrok.com/get-started/your-authtoken
+3. **Save it in Kaggle**: Open your notebook → **Add-ons → Secrets** → Add secret named `NGROK_AUTHTOKEN` with your token value
+4. **(Optional) Connect via API**: If you want programmatic tunnel management instead of CLI:
+   ```bash
+   # Install ngrok Python SDK
+   pip install pyngrok
+   
+   # Use in code (authtoken auto-reads from NGROK_AUTHTOKEN env var)
+   from pyngrok import ngrok
+   tunnel = ngrok.connect(8188, auth="kaggle:YOUR_PASSWORD")
+   print(tunnel.public_url)
+   ```
+   The platform uses the CLI binary by default (more reliable in Kaggle), but the SDK works for custom integrations.
+
+**Free tier limits:** 1 agent, random subdomain (URL changes on restart), 40 connections/min. Upgrade to Personal ($8/mo) for static domains and higher limits if running production workloads.
+
+### Multi-Account Kaggle Mode
+
+This platform supports two deployment modes (default: **single**):
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| **Single** (default) | One Kaggle account, one GPU instance, one ngrok tunnel | Personal use, testing, single-user generation |
+| **Multi** | Multiple Kaggle accounts orchestrated from a central coordinator | Team/shared GPU pool, higher throughput, redundancy |
+
+To enable multi-mode, set `KGPU_MODE=multi` as a Kaggle Secret. See the [Multi-Account Guide](#multi-account-setup) below.
 
 📖 [Kaggle Secrets Documentation](https://www.kaggle.com/docs/secrets)
 
