@@ -8,7 +8,7 @@
 set -uo pipefail
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
-BLUE='\033[0;34m'; BOLD='\033[1m'; NC='\033[0m'
+BLUE='\033[0;34m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 
 err() { echo -e "${RED}✗${NC} $1" >&2; }
 info() { echo -e "${BLUE}ℹ${NC} $1"; }
