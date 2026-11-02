@@ -133,57 +133,68 @@ def write_health(alive: bool, public_url: str, started_at: str) -> None:
         logger.error(f"Health write failed: {e}")
 
 
+DIAG_FILE = "/kaggle/working/ngrok_diag.txt"
+
+
+def write_diag(msg: str) -> None:
+    """Write diagnostic message to disk for notebook inspection."""
+    try:
+        Path(DIAG_FILE).write_text(f"{datetime.now(timezone.utc).isoformat()} | {msg}\n", encoding="utf-8")
+    except OSError:
+        pass
+
+
 def main() -> None:
+    write_diag("STARTED")
+
     # --- MANDATORY Auth Validation (Blocker 4.1) ---
     comfyui_user = "kaggle"
     comfyui_pass = os.environ.get("COMFYUI_AUTH_PASSWORD")
 
     if not comfyui_user or not comfyui_pass:
-        logger.critical(
-            "FATAL: COMFYUI_AUTH_PASSWORD must be set as Kaggle Secret. "
-            "Refusing to start tunnel without authentication."
-        )
-        print(
-            "ERROR: COMFYUI_AUTH_PASSWORD is REQUIRED as a Kaggle Secret.\n"
-            "Set them in Kaggle Notebook Settings > Secrets before running.",
-            file=sys.stderr,
-        )
+        msg = "FATAL: COMFYUI_AUTH_PASSWORD not set in environment"
+        write_diag(msg)
+        logger.critical(msg)
         sys.exit(1)
 
     authtoken = os.environ.get("NGROK_AUTHTOKEN") or os.environ.get("KAGGLE_SECRET_NGROK_TOKEN")
     if not authtoken:
-        logger.critical("NGROK_AUTHTOKEN / KAGGLE_SECRET_NGROK_TOKEN not set")
-        print(
-            "ERROR: NGROK_AUTHTOKEN or KAGGLE_SECRET_NGROK_TOKEN is required.\n"
-            "Get your token at https://dashboard.ngrok.com/get-started/your-authtoken",
-            file=sys.stderr,
-        )
+        msg = "FATAL: NGROK_AUTHTOKEN not set in environment"
+        write_diag(msg)
+        logger.critical(msg)
         sys.exit(1)
+
+    write_diag(f"AUTH_OK user={comfyui_user} token_len={len(authtoken)}")
 
     # --- Locate ngrok ---
     ngrok_bin = find_ngrok_binary()
+    write_diag(f"BINARY_FOUND path={ngrok_bin}")
     logger.info(f"ngrok starting: binary={ngrok_bin}, port={COMFYUI_PORT}")
 
     # --- Wait for ComfyUI port ---
+    write_diag(f"WAITING_PORT {COMFYUI_PORT}")
     if not wait_for_port(COMFYUI_PORT):
-        logger.critical(f"Port {COMFYUI_PORT} not listening after {PORT_WAIT_TIMEOUT_S}s")
-        print(
-            f"ERROR: Port {COMFYUI_PORT} not listening after {PORT_WAIT_TIMEOUT_S}s.\n"
-            "Ensure ComfyUI is running before starting ngrok_launcher.",
-            file=sys.stderr,
-        )
+        msg = f"FATAL: Port {COMFYUI_PORT} not listening after {PORT_WAIT_TIMEOUT_S}s"
+        write_diag(msg)
+        logger.critical(msg)
         sys.exit(1)
 
+    write_diag(f"PORT_READY {COMFYUI_PORT}")
     logger.info(f"Port {COMFYUI_PORT} ready")
 
     # --- Authenticate ngrok ---
+    write_diag("CONFIGURING_AUTHTOKEN")
     auth_result = subprocess.run(
         [ngrok_bin, "config", "add-authtoken", authtoken],
         capture_output=True, text=True,
     )
     if auth_result.returncode != 0:
-        logger.error(f"ngrok auth failed: {auth_result.stderr.strip()}")
+        msg = f"FATAL: ngrok config add-authtoken failed rc={auth_result.returncode} stderr={auth_result.stderr.strip()}"
+        write_diag(msg)
+        logger.error(msg)
         sys.exit(1)
+
+    write_diag("AUTHTOKEN_CONFIGURED")
 
     # --- Build ngrok command with MANDATORY basic auth (Blocker 4.1) ---
     cmd = [
@@ -217,6 +228,7 @@ def main() -> None:
     signal.signal(signal.SIGINT, shutdown_handler)
 
     # --- Launch ngrok ---
+    write_diag(f"LAUNCHING cmd={' '.join(cmd)}")
     try:
         child_proc = subprocess.Popen(
             cmd,
@@ -225,8 +237,11 @@ def main() -> None:
             text=True,
             bufsize=1,
         )
+        write_diag(f"PROCESS_STARTED pid={child_proc.pid}")
     except (FileNotFoundError, OSError) as e:
-        logger.critical(f"Failed to launch ngrok: {e}")
+        msg = f"FATAL: Failed to launch ngrok: {e}"
+        write_diag(msg)
+        logger.critical(msg)
         sys.exit(1)
 
     # --- Parse stdout for URL and forward logs ---
@@ -259,8 +274,11 @@ def main() -> None:
                     url_path = Path(NGROK_URL_FILE)
                     url_path.parent.mkdir(parents=True, exist_ok=True)
                     url_path.write_text(public_url)
+                    write_diag(f"URL_EXTRACTED {public_url}")
                 except OSError as e:
-                    logger.error(f"URL file write failed: {e}")
+                    msg = f"FATAL: URL file write failed: {e}"
+                    write_diag(msg)
+                    logger.error(msg)
 
                 # Print URL to stdout for notebook cell capture
                 print(public_url, flush=True)
