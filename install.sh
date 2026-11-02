@@ -285,11 +285,11 @@ download_model() {
 }
 
 [ "$INSTALL_FLUX_DEV" -eq 1 ] && download_model \
- "https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev.safetensors" \
+ "https://huggingface.co/Comfy-Org/Flux-1-Dev/resolve/main/flux1-dev-fp8.safetensors" \
  "/kaggle/working/models/unet/flux1-dev.safetensors"
 
 [ "$INSTALL_MINIMAX_H3" -eq 1 ] && download_model \
- "https://huggingface.co/MiniMax/H3/resolve/main/checkpoint.safetensors" \
+ "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors" \
  "/kaggle/working/models/checkpoints/minimax_h3.safetensors"
 
 [ "$INSTALL_SDXL" -eq 1 ] && download_model \
