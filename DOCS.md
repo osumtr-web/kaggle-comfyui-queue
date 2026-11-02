@@ -217,9 +217,31 @@ This eliminates manual copy-paste of URLs. The URL is also persisted to `/kaggle
 
 ---
 
+## First-Time Setup (One-Line Bootstrap)
+
+For private repos or zero-prompt setup, use `bootstrap.sh`:
+
+```bash
+!curl -sL https://raw.githubusercontent.com/osumtr-web/kaggle-comfyui-queue/master/bootstrap.sh | bash -s ghp_YOUR_TOKEN comfyui
+```
+
+This script handles everything in one command:
+1. Clones the repo using your GitHub token (private or public)
+2. Saves the token to `config/auth.env` for future installs
+3. Runs `install.sh` in non-interactive mode (auto-selects use case)
+4. Starts all services via `start.sh`
+
+**Use case options:** `comfyui`, `llm`, `ml` (or `1`, `2`, `3`)
+
+**Get your token:** https://github.com/settings/tokens → Generate new token (classic) → scope: `repo`
+
+After bootstrap, your token is persisted — future `install.sh` runs will auto-clone without prompts.
+
+---
+
 ## Advanced Usage
 
-### Private GitHub Repo
+### Private GitHub Repo (Manual)
 
 ```bash
 !bash install.sh --token ghp_YOUR_GITHUB_TOKEN

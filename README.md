@@ -6,9 +6,19 @@
 
 ---
 
-## Setup (2 commands)
+## Setup
 
-Paste into a Kaggle notebook cell:
+### Option A: One-Line Bootstrap (recommended — handles everything)
+
+Get your GitHub token at https://github.com/settings/tokens (scope: `repo`), then paste:
+
+```bash
+!curl -sL https://raw.githubusercontent.com/osumtr-web/kaggle-comfyui-queue/master/bootstrap.sh | bash -s ghp_YOUR_TOKEN comfyui
+```
+
+Replace `comfyui` with `llm` or `ml` to auto-select. This clones the repo, saves your token, installs dependencies, downloads models, and starts services — **zero prompts**.
+
+### Option B: Manual (public repo only)
 
 ```bash
 !git clone https://github.com/osumtr-web/kaggle-comfyui-queue.git /kaggle/working/kaggle-comfyui-queue
