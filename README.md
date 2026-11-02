@@ -122,6 +122,21 @@ The installer asks **one question**: pick your use case:
 
 Everything else (components, auth, ngrok, directories) is pre-configured. Your ngrok URL appears after `start.sh` completes. Authenticate with `kaggle` / your password.
 
+### GitHub Token for Private Repos
+
+If your fork is private, pass your token via CLI flag or interactive prompt:
+
+```bash
+# Via CLI flag (recommended for scripts)
+!bash install.sh --token ghp_YOUR_GITHUB_TOKEN
+
+# Or paste when prompted interactively (press ENTER to skip for public repos)
+!bash install.sh
+# > GitHub token (or ENTER): ghp_YOUR_GITHUB_TOKEN
+```
+
+Get a token at https://github.com/settings/tokens → Generate new token (classic) → select `repo` scope.
+
 ### Non-interactive / scripted install
 
 ```bash
@@ -131,6 +146,37 @@ Everything else (components, auth, ngrok, directories) is pre-configured. Your n
 # Specify use case + private repo token
 !bash install.sh --case llm --token ghp_YOUR_GITHUB_TOKEN
 ```
+
+### How `start.sh` Knows What to Launch
+
+`install.sh` saves your selections to `/kaggle/working/.kgpu_choices`. When you run `start.sh`, it reads this file and launches **only** the components and models you selected. Example contents:
+
+```
+USE_CASE=comfyui
+MODE=single
+INSTALL_COMFYUI=1
+INSTALL_QUEUE_API=1
+INSTALL_QUEUE_CONSUMER=1
+INSTALL_WATCHDOG=1
+INSTALL_NGROK=1
+INSTALL_OLLAMA=0
+INSTALL_FLUX_DEV=1
+INSTALL_MINIMAX_H3=1
+NGROK_TOKEN=1qb36HRi...
+COMFYUI_PASS=MyKagglePass2026!
+```
+
+To change your setup, delete `/kaggle/working/.kgpu_installed` and re-run `install.sh`.
+
+### What Changed from Previous Versions
+
+| Before | Now |
+|--------|-----|
+| 7-component toggle menu + 4-model toggle menu | Single use-case picker (comfyui / llm / ml) |
+| Manual secret setup required before first run | Auth defaults embedded; Kaggle Secrets override if set |
+| `setup.ipynb` as primary entry point | `install.sh` + `start.sh` as primary entry point |
+| No GitHub token support | `--token` flag + interactive prompt for private repos |
+| `start.sh` launched all services unconditionally | `start.sh` reads `.kgpu_choices` and launches only selected components |
 
 ---
 
