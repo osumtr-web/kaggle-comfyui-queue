@@ -61,20 +61,22 @@ fi
 
 cd "$INSTALL_DIR"
 
-# --- Step 2: Save token to auth.env ---
-info "Saving GitHub token to config/auth.env..."
-if grep -q 'export GITHUB_TOKEN=""' config/auth.env 2>/dev/null; then
-    sed -i "s|export GITHUB_TOKEN=\"\"|export GITHUB_TOKEN=\"${GITHUB_TOKEN}\"|" config/auth.env
-    success "Token saved to config/auth.env"
-elif grep -q 'export GITHUB_TOKEN=' config/auth.env 2>/dev/null; then
+# --- Step 2: Save token to LOCAL auth.env (gitignored, never committed) ---
+info "Saving GitHub token to local config/auth.env..."
+# Create from template if auth.env doesn't exist yet
+if [ ! -f config/auth.env ]; then
+    cp config/auth.env.example config/auth.env
+    info "Created config/auth.env from template"
+fi
+# Write token to the local-only file
+if grep -q 'export GITHUB_TOKEN=' config/auth.env 2>/dev/null; then
     sed -i "s|export GITHUB_TOKEN=.*|export GITHUB_TOKEN=\"${GITHUB_TOKEN}\"|" config/auth.env
-    success "Token updated in config/auth.env"
 else
     echo "" >> config/auth.env
     echo "# GitHub Personal Access Token (auto-saved by bootstrap.sh)" >> config/auth.env
     echo "export GITHUB_TOKEN=\"${GITHUB_TOKEN}\"" >> config/auth.env
-    success "Token appended to config/auth.env"
 fi
+success "Token saved locally (will NOT be pushed to git)"
 
 # --- Step 3: Run installer ---
 info "Running installer..."

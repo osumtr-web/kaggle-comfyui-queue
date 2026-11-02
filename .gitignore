@@ -1,0 +1,35 @@
+# Secrets — NEVER commit real credentials
+config/auth.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Kaggle runtime artifacts
+*.db
+*.db-wal
+*.db-shm
+ngrok_url.txt
+ngrok.log
+.kgpu_installed
+.kgpu_choices
+
+# Output files
+output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# EGM review artifacts (too large for GitHub)
+goldfish-reports/
