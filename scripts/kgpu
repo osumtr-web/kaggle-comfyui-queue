@@ -115,6 +115,65 @@ cmd_generate() {
     fi
 }
 
+cmd_pull() {
+    local url
+    url=$(get_ngrok_url) || exit 1
+    local job_id="$1"
+    local output="${2:-}"
+
+    if [ -z "$job_id" ]; then
+        err "Usage: kgpu pull <job_id> [output_path]"
+        exit 1
+    fi
+
+    # Check job status first
+    info "Checking job $job_id..."
+    local job_info
+    job_info=$(curl -s -u "$KGPU_USERNAME:$KGPU_PASSWORD" "$url/api/jobs/$job_id")
+    local job_status
+    job_status=$(echo "$job_info" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))" 2>/dev/null || echo "unknown")
+
+    if [ "$job_status" != "completed" ]; then
+        err "Job $job_id is '$job_status', not 'completed'. Cannot pull artifact."
+        echo "$job_info" | python3 -m json.tool 2>/dev/null || echo "$job_info"
+        exit 1
+    fi
+
+    # Determine output filename from server result_path
+    if [ -z "$output" ]; then
+        output=$(echo "$job_info" | python3 -c "
+import sys, json, os
+d = json.load(sys.stdin)
+rp = d.get('result_path', '')
+if rp:
+    print(os.path.basename(rp))
+else:
+    print(f'job_{d.get(\"id\", \"$job_id\")}_artifact')
+" 2>/dev/null || echo "job_${job_id}_artifact")
+    fi
+
+    info "Downloading artifact for job $job_id → $output"
+    local http_code
+    http_code=$(curl -s -o "$output" -w "%{http_code}" \
+        -u "$KGPU_USERNAME:$KGPU_PASSWORD" \
+        "$url/api/jobs/$job_id/artifact")
+
+    if [ "$http_code" = "200" ]; then
+        local file_size
+        file_size=$(stat -f%z "$output" 2>/dev/null || stat -c%s "$output" 2>/dev/null || echo "?")
+        success "Downloaded: $output ($file_size bytes)"
+    else
+        rm -f "$output"
+        err "Download failed (HTTP $http_code). Job may be text-only — check: kgpu job $job_id"
+        exit 1
+    fi
+}
+
+cmd_fetch() {
+    # Alias for pull
+    cmd_pull "$@"
+}
+
 cmd_help() {
     echo -e "${BOLD}${CYAN}kgpu — Kaggle GPU-as-a-Service CLI${NC}"
     echo ""
@@ -129,12 +188,17 @@ cmd_help() {
     echo "                            Submit generation job"
     echo "                            type: diffusion_image|diffusion_video|llm"
     echo "                            model_id: black-forest-labs/FLUX.1-dev (default)"
+    echo "  pull <job_id> [out]       Download generated artifact (image/video/audio)"
+    echo "  fetch <job_id> [out]      Alias for pull"
     echo ""
     echo "Examples:"
     echo "  kgpu health"
     echo "  kgpu jobs pending"
     echo "  kgpu generate \"a cyberpunk city at sunset\""
     echo "  kgpu generate \"write a haiku about debugging\" llm llama3.2:3b"
+    echo "  kgpu pull 42              # auto-names from server"
+    echo "  kgpu pull 42 my_image.png # custom output name"
+    echo "  kgpu fetch 42 ./outputs/  # download to directory"
     echo ""
     echo "Auth: Auto-detected from config/auth.env"
     echo "URL: Auto-detected from ngrok API or /kaggle/working/ngrok_url.txt"
@@ -147,6 +211,8 @@ case "${1:-help}" in
     job) cmd_job "${2:-}" ;;
     models) cmd_models ;;
     generate) cmd_generate "${2:-}" "${3:-diffusion_image}" "${4:-black-forest-labs/FLUX.1-dev}" ;;
+    pull) cmd_pull "${2:-}" "${3:-}" ;;
+    fetch) cmd_fetch "${2:-}" "${3:-}" ;;
     help|--help|-h) cmd_help ;;
     *) err "Unknown command: $1"; cmd_help; exit 1 ;;
 esac

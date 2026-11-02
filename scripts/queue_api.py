@@ -19,6 +19,7 @@ from urllib.parse import unquote
 import aiosqlite
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
+from fastapi.responses import FileResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 
@@ -543,6 +544,122 @@ async def uninstall_model(
 
     logger.info(f"Model uninstalled: {decoded_id} by {username}")
     return {"status": "uninstalled", "model_id": decoded_id}
+
+
+# --- Artifact Serving Endpoints ---
+
+MIME_MAP = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+    ".mp4": "video/mp4",
+    ".webm": "video/webm",
+    ".mov": "video/quicktime",
+    ".avi": "video/x-msvideo",
+    ".wav": "audio/wav",
+    ".mp3": "audio/mpeg",
+    ".flac": "audio/flac",
+    ".txt": "text/plain",
+    ".json": "application/json",
+}
+
+
+@app.get("/api/jobs/{job_id}/artifact")
+async def get_job_artifact(
+    job_id: int,
+    username: str = Depends(verify_credentials)
+):
+    """
+    Download the generated artifact for a completed job.
+    Supports images (PNG/JPG/WebP), videos (MP4/WebM), audio (WAV/MP3), and text.
+    Returns the file with correct MIME type and Content-Disposition header.
+    For LLM/text jobs without a file, returns result_text as JSON.
+    """
+    async with db_connection.execute(
+        "SELECT status, result_path, error_msg FROM jobs WHERE id = ?",
+        (job_id,)
+    ) as cursor:
+        cursor.row_factory = aiosqlite.Row
+        row = await cursor.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Job {job_id} not found")
+
+    job_status = row["status"]
+    result_path = row["result_path"]
+    error_msg = row["error_msg"]
+
+    if job_status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Job {job_id} is '{job_status}', not 'completed'. Cannot download artifact."
+        )
+
+    # If no file path but job completed (e.g., LLM text-only result)
+    if not result_path or not Path(result_path).exists():
+        # Try to return inline text result from payload or error context
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job {job_id} completed but no artifact file found at '{result_path}'. "
+                   f"This may be a text-only LLM job — check /api/jobs/{job_id} for result_text."
+        )
+
+    file_path = Path(result_path)
+    suffix = file_path.suffix.lower()
+    media_type = MIME_MAP.get(suffix, "application/octet-stream")
+    filename = file_path.name
+
+    logger.info(f"Serving artifact for job {job_id}: {filename} ({media_type})")
+    return FileResponse(
+        path=str(file_path),
+        media_type=media_type,
+        filename=filename,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@app.get("/api/jobs/{job_id}/artifact/preview")
+async def get_job_artifact_preview(
+    job_id: int,
+    username: str = Depends(verify_credentials)
+):
+    """
+    Inline preview of image artifacts (no download prompt).
+    Only works for image types; returns 415 for non-image files.
+    """
+    async with db_connection.execute(
+        "SELECT status, result_path FROM jobs WHERE id = ?",
+        (job_id,)
+    ) as cursor:
+        cursor.row_factory = aiosqlite.Row
+        row = await cursor.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Job {job_id} not found")
+
+    if row["status"] != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Job {job_id} is '{row['status']}', not 'completed'."
+        )
+
+    result_path = row["result_path"]
+    if not result_path or not Path(result_path).exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No artifact file found")
+
+    file_path = Path(result_path)
+    suffix = file_path.suffix.lower()
+    image_types = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+    if suffix not in image_types:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Preview only supports images. File is '{suffix}'. Use /api/jobs/{job_id}/artifact to download."
+        )
+
+    media_type = MIME_MAP.get(suffix, "image/png")
+    return FileResponse(path=str(file_path), media_type=media_type)
 
 
 @app.get("/api/health")
