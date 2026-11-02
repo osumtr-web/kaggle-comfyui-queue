@@ -1,0 +1,45 @@
+server:
+  listen: "0.0.0.0"
+  port: 8188
+  disable_auto_launch_browser: true
+  multi_gpu: true
+  preview_method: "auto"
+
+paths:
+  checkpoints: "/kaggle/working/models/checkpoints"
+  loras: "/kaggle/working/models/loras"
+  unet: "/kaggle/working/models/unet"
+  vae: "/kaggle/working/models/vae"
+  clip: "/kaggle/working/models/clip"
+  output: "/kaggle/working/output"
+
+queue:
+  max_pending_jobs: 50
+  default_max_retries: 3
+  heartbeat_interval_seconds: 30
+  stale_heartbeat_threshold_seconds: 90
+  poll_interval_seconds: 2
+
+vram_safety:
+  min_free_mb: 2048
+  gpu_index: 0
+  post_dispatch_health_check_timeout_seconds: 30
+  oom_backoff_base_seconds: 60
+
+output_rotation:
+  max_output_gb: 25
+  cleanup_threshold_percent: 80
+
+auth:
+  username: "kaggle"
+  password_env_var: "COMFYUI_AUTH_PASSWORD"
+
+ngrok:
+  auth_token_env_var: "NGROK_AUTHTOKEN"
+  local_port: 8188
+  url_file: "/kaggle/working/ngrok_url.txt"
+
+logging:
+  watchdog_log: "/kaggle/working/watchdog.log"
+  level: "INFO"
+  format: "json"
