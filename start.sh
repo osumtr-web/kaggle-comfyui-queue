@@ -136,14 +136,27 @@ if [ "$INSTALL_NGROK" -eq 1 ]; then
  echo " PID: $NGROK_PID"
 
  info "Waiting for ngrok URL..."
+ URL=""
  for i in $(seq 1 30); do
+ # Primary: query ngrok local API (port 4040) dynamically
+ API_URL=$(curl -s http://127.0.0.1:4040/api/tunnels 2>/dev/null  | python3 -c "import sys,json; d=json.load(sys.stdin); print(next((t['public_url'] for t in d.get('tunnels',[]) if t.get('public_url','').startswith('https://')),''))" 2>/dev/null || true)
+ if [ -n "$API_URL" ]; then
+ URL="$API_URL"
+ echo "$URL" > /kaggle/working/ngrok_url.txt
+ success "ngrok URL (from API): $URL"
+ break
+ fi
+ # Fallback: read from file written by ngrok_launcher.py
  if [ -f /kaggle/working/ngrok_url.txt ] && [ -s /kaggle/working/ngrok_url.txt ]; then
  URL=$(cat /kaggle/working/ngrok_url.txt)
- success "ngrok URL: $URL"
+ success "ngrok URL (from file): $URL"
  break
  fi
  sleep 2
  done
+ if [ -z "$URL" ]; then
+ warn "Could not retrieve ngrok URL. Check /kaggle/working/ngrok.log"
+ fi
 else
  info "ngrok skipped (not selected during install)."
 fi

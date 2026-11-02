@@ -18,6 +18,8 @@ import socket
 import subprocess
 import sys
 import time
+import urllib.request
+import urllib.error
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -97,6 +99,22 @@ def wait_for_port(port: int, timeout_s: int = PORT_WAIT_TIMEOUT_S) -> bool:
         logger.info(f"Waiting for port {port}... ({int(deadline - time.monotonic())}s remaining)")
         time.sleep(PORT_CHECK_INTERVAL_S)
     return False
+
+
+def get_ngrok_url_from_api() -> str | None:
+    """Query ngrok local API (port 4040) for the current public tunnel URL."""
+    try:
+        req = urllib.request.Request("http://127.0.0.1:4040/api/tunnels")
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = json.loads(resp.read().decode())
+            tunnels = data.get("tunnels", [])
+            for t in tunnels:
+                pub = t.get("public_url", "")
+                if isinstance(pub, str) and pub.startswith("https://"):
+                    return pub
+    except (urllib.error.URLError, urllib.error.HTTPError, OSError, json.JSONDecodeError, KeyError):
+        pass
+    return None
 
 
 def write_health(alive: bool, public_url: str, started_at: str) -> None:
@@ -250,14 +268,39 @@ def main() -> None:
         except (json.JSONDecodeError, ValueError):
             pass
 
-        # Periodic health update
+        # Periodic health update + API-based URL fallback
         now_mono = time.monotonic()
         if now_mono - last_health_update >= HEALTH_UPDATE_INTERVAL_S:
+            # Try ngrok local API as fallback/refresh for URL
+            if not url_found or True:  # Always refresh via API when available
+                api_url = get_ngrok_url_from_api()
+                if api_url and api_url != public_url:
+                    public_url = api_url
+                    url_found = True
+                    logger.info(f"Tunnel URL from API: {public_url}", extra={"url": public_url})
+                    try:
+                        Path(NGROK_URL_FILE).write_text(public_url)
+                    except OSError as e:
+                        logger.error(f"URL file write failed: {e}")
+                    print(public_url, flush=True)
             write_health(True, public_url, started_at)
             last_health_update = now_mono
 
         # Timeout check for URL extraction
         if not url_found and (now_mono - launch_time) > URL_EXTRACT_TIMEOUT_S:
+            # Final attempt via ngrok local API before giving up
+            api_url = get_ngrok_url_from_api()
+            if api_url:
+                public_url = api_url
+                url_found = True
+                logger.info(f"Tunnel URL from API (timeout fallback): {public_url}", extra={"url": public_url})
+                try:
+                    Path(NGROK_URL_FILE).write_text(public_url)
+                except OSError as e:
+                    logger.error(f"URL file write failed: {e}")
+                print(public_url, flush=True)
+                write_health(True, public_url, started_at)
+                continue
             logger.critical(f"No public URL extracted within {URL_EXTRACT_TIMEOUT_S}s")
             child_proc.terminate()
             try:
