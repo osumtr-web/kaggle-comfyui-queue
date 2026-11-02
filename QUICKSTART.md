@@ -11,7 +11,7 @@
 !bash /kaggle/working/kaggle-comfyui-queue/start.sh
 ```
 
-**That's it.** Your ngrok URL appears after `start.sh` completes.
+**That's it.** Your ngrok URL is retrieved **dynamically** via the ngrok local API (port 4040) — no manual copy-paste needed. The URL also persists to `/kaggle/working/ngrok_url.txt` as a fallback.
 
 ---
 
@@ -29,24 +29,24 @@ Everything else is automatic: dependencies, auth, ngrok, directories, model down
 
 ---
 
-## Auth (Pre-configured)
+## Auth (One Password Everywhere)
 
-No secrets to set up. Defaults are embedded:
+A single strong password is used for **all** services — ComfyUI, ngrok tunnel, Queue API, every endpoint.
 
-| Credential | Value | Override |
-|------------|-------|----------|
-| Username | `kaggle` | — |
-| Password | `MyKagglePass2026!` | Set Kaggle Secret `COMFYUI_AUTH_PASSWORD` |
-| ngrok Token | Embedded | Set Kaggle Secret `NGROK_AUTHTOKEN` |
+| Credential | Default Value | How to Change |
+|------------|---------------|---------------|
+| Username | `kaggle` | Edit `config/auth.env` |
+| Password | `KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479` | Edit `config/auth.env` → commit → push → re-run `install.sh` |
+| ngrok Token | Embedded in `config/auth.env` | Edit `config/auth.env` → commit → push → re-run `install.sh` |
 
-Kaggle Secrets override embedded defaults automatically.
+**To change your password:** edit `config/auth.env`, `git commit`, `git push`, then re-run `install.sh`. One file controls everything.
 
 ---
 
 ## Test Your Server
 
 ```bash
-curl -u kaggle:MyKagglePass2026! https://YOUR-URL.ngrok-free.app/api/health
+curl -u kaggle:KaggleGPU2026!SecureAccess https://YOUR-URL.ngrok-free.app/api/health
 ```
 
 Expected response:

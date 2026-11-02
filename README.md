@@ -40,11 +40,25 @@ That's it. The installer:
 !bash /kaggle/working/kaggle-comfyui-queue/start.sh
 ```
 
-Your ngrok URL appears. Use it from anywhere:
+Your ngrok URL is retrieved **dynamically** via the ngrok local API (port 4040) — no manual copy-paste needed. The URL also persists to `/kaggle/working/ngrok_url.txt` as a fallback. Use it from anywhere:
 
 ```bash
-curl -u kaggle:MyKagglePass2026! https://YOUR-URL.ngrok-free.app/api/health
+curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 https://YOUR-URL.ngrok-free.app/api/health
 ```
+
+---
+
+## Authentication (One Password Everywhere)
+
+A single strong password is used for **all** services — ComfyUI, ngrok tunnel, Queue API, every endpoint.
+
+| Credential | Default Value | How to Change |
+|------------|---------------|---------------|
+| Username | `kaggle` | Edit `config/auth.env` |
+| Password | `KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479` | Edit `config/auth.env` → commit → push → re-run `install.sh` |
+| ngrok Token | Embedded in `config/auth.env` | Edit `config/auth.env` → commit → push → re-run `install.sh` |
+
+**To change your password:** edit `config/auth.env`, `git commit`, `git push`, then re-run `install.sh`. One file controls everything.
 
 ---
 
@@ -53,7 +67,7 @@ curl -u kaggle:MyKagglePass2026! https://YOUR-URL.ngrok-free.app/api/health
 ### Generate an Image (ComfyUI mode)
 
 ```bash
-curl -u kaggle:MyKagglePass2026! -X POST https://YOUR-URL.ngrok-free.app/api/jobs \
+curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 -X POST https://YOUR-URL.ngrok-free.app/api/jobs \
   -H "Content-Type: application/json" \
   -d '{
     "model_id": "black-forest-labs/FLUX.1-dev",
@@ -66,7 +80,7 @@ curl -u kaggle:MyKagglePass2026! -X POST https://YOUR-URL.ngrok-free.app/api/job
 ### Generate Text (LLM mode)
 
 ```bash
-curl -u kaggle:MyKagglePass2026! -X POST https://YOUR-URL.ngrok-free.app/api/jobs \
+curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 -X POST https://YOUR-URL.ngrok-free.app/api/jobs \
   -H "Content-Type: application/json" \
   -d '{
     "model_id": "llama3.2:3b",
@@ -79,13 +93,13 @@ curl -u kaggle:MyKagglePass2026! -X POST https://YOUR-URL.ngrok-free.app/api/job
 ### Check Job Status
 
 ```bash
-curl -u kaggle:MyKagglePass2026! https://YOUR-URL.ngrok-free.app/api/jobs/{job_id}
+curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 https://YOUR-URL.ngrok-free.app/api/jobs/{job_id}
 ```
 
 ### List All Jobs
 
 ```bash
-curl -u kaggle:MyKagglePass2026! https://YOUR-URL.ngrok-free.app/api/jobs
+curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 https://YOUR-URL.ngrok-free.app/api/jobs
 ```
 
 ---
@@ -132,7 +146,7 @@ If you forked and made your repo private:
 ### Install More Models at Runtime
 
 ```bash
-curl -u kaggle:MyKagglePass2026! -X POST https://YOUR-URL/api/models/install \
+curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 -X POST https://YOUR-URL/api/models/install \
   -H "Content-Type: application/json" \
   -d '{"hf_repo": "stabilityai/stable-diffusion-xl-base-1.0", "model_type": "diffusion_image"}'
 ```
@@ -196,7 +210,7 @@ KGPU_MODE=multi
 
 | Problem | Fix |
 |---------|-----|
-| **ngrok returns 401** | Use password `MyKagglePass2026!` (or whatever you set in Kaggle Secrets) |
+| **ngrok returns 401** | Use password from `config/auth.env` (default: `KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479`) |
 | **Job stuck in "running"** | Wait 90s for watchdog to recover, or re-run `start.sh` |
 | **OOM error** | Model too large — use smaller model or lower resolution |
 | **Model install fails** | Check internet; for gated HF models, set `HF_TOKEN` in Kaggle Secrets |
