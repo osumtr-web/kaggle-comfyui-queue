@@ -171,7 +171,7 @@ echo -e "${BOLD}${CYAN}▶ Step 4: Review${NC}"
 echo ""
 echo "  Use case:  $USE_CASE"
 echo "  Mode:      $MODE"
-echo "  Auth:      kaggle / $COMFYUI_PASS"
+echo "  Auth:      kaggle / ${KGPU_PASSWORD:0:6}..."
 echo ""
 case "$USE_CASE" in
  comfyui) echo "  Components: ComfyUI, Queue API, Consumer, Watchdog, ngrok"
