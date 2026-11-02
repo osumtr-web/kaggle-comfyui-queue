@@ -76,6 +76,7 @@ export KGPU_USERNAME="kaggle"
 export KGPU_PASSWORD="KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479"
 export NGROK_AUTHTOKEN=""
 export GITHUB_TOKEN=""
+export HF_TOKEN=""
 export KGPU_MODE="single"
 AUTHEOF
         info "Created minimal config/auth.env"

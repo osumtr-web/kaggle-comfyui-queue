@@ -45,6 +45,7 @@ fi
 KGPU_USERNAME="${KGPU_USERNAME:-kaggle}"
 KGPU_PASSWORD="${KGPU_PASSWORD:-KaggleGPU2026!SecureAccess}"
 NGROK_AUTHTOKEN="${NGROK_AUTHTOKEN:-1qb36HRiTApsnt5IVQ1bDWAbdk7_5snrnJJ8eBdxbZxhP625f}"
+HF_TOKEN="${HF_TOKEN:-}"
 
 # --- Parse CLI args ---
 while [[ $# -gt 0 ]]; do
@@ -256,7 +257,7 @@ cp -r "$WORKDIR/workflows/"* /kaggle/working/workflows/ 2>/dev/null || true
 # --- ngrok ---
 if [ "$INSTALL_NGROK" -eq 1 ] && ! command -v ngrok &>/dev/null; then
  info "Installing ngrok..."
- curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok-v3-stable-linux-amd64.tgz | tar -xz -C /usr/local/bin
+ curl -fsSL https://bin.ngrok.com/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz | tar -xz -C /usr/local/bin
  success "ngrok installed."
 fi
 
@@ -273,7 +274,11 @@ download_model() {
  [ -f "$dest" ] && { info "Already have $(basename "$dest")"; return 0; }
  info "Downloading $(basename "$dest")..."
  mkdir -p "$(dirname "$dest")"
- wget --retry-connrefused --tries=3 -c -q --show-progress -O "$dest" "$url" || {
+ local hf_header=""
+ if [ -n "${HF_TOKEN:-}" ]; then
+   hf_header="--header=Authorization: Bearer ${HF_TOKEN}"
+ fi
+ wget --retry-connrefused --tries=3 -c -q --show-progress $hf_header -O "$dest" "$url" || {
    warn "Failed: $(basename "$dest")"; rm -f "$dest"; return 1;
  }
  success "Downloaded: $(basename "$dest")"
