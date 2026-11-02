@@ -1,0 +1,477 @@
+What if I told
+you that you could
+run one of the
+best AI
+video generators for free
+without your own GPU and
+get a 15-second
+video with sound in
+about 16 minutes
+?  Hello friends, greetings
+again.  Today we
+will talk about Minimax H3,
+which runs for
+free on Kaggle.
+No expensive
+video card, no
+paid subscription,
+just a laptop, a browser,
+and one click.  Once everything
+is set up, you
+simply open
+the page, enter your
+query, click "
+create" and
+upload your video.
+One honest
+remark before we
+begin, because I don't
+like to make empty
+promises.  It's
+free, but not
+unlimited.  Kaggle gives
+you about 30 hours of
+GPU work each week.
+Of course?  Let's go.
+So, what is Minimax H3?
+This is an open source
+AI
+video creation model
+from
+Minimax, released in
+August, and it is
+truly impressive.  It
+creates up to 15 seconds of
+video at 24
+frames per second.  And
+here's the part I
+like the
+most.  It
+generates sound
+simultaneously with
+the image in one
+pass.  Voices,
+effects, music.  It
+supports text in
+video, images in
+video, and
+start and
+end frames, where you
+provide two
+images and the model
+creates movement between them.
+People compare it to
+large closed
+models like the Kling 1.5,
+and I want to be
+fair.
+Closed-source models
+are ahead in terms of
+duration and
+resolution
+, but H3 is open
+source.  It's much
+cheaper and you can
+run it
+yourself.  This is the
+main purpose of this
+video.  So, this is a heavy
+model.  Normally you
+would need a
+powerful graphics card,
+but I have prepared a
+Kaggle notebook for you with a
+fast VDN mode
+that runs in eight
+steps instead of 20. In
+my tests, 10 seconds of
+video took
+about 14 minutes with VDN
+compared to 31
+minutes in the
+four-step
+turbo mode.  And a 15-
+second
+draft-quality video
+took me
+about 16 minutes.  For a
+free
+notepad, this is a very
+good result.  What do
+you need?  Three
+things.  First, a
+Kaggle account.  Second,
+verify your
+phone number in
+Kaggle settings.
+Without this, Kaggle
+will not provide you with a GPU.  This
+will unlock your two
+Tesla T4 cards.  Third,
+turn on the Internet in the
+notebook settings, because it
+downloads the models.
+As for those GPUs, the T4 is an
+old card.  This is
+impossible to deny
+.  Each of them has
+about 15 GB
+of video memory, so
+about 30 in total.
+Not many home
+computers have
+that much.  When
+video memory is
+low, the notebook
+uses
+system
+RAM, but that's
+also scarce on Kaggle.  And sometimes
+it ends.  I'll
+show you how to
+fix it.  Let's begin.  I'm
+on my GitHub in a
+repository with
+AI notebooks.
+If this helped,
+please give it a
+star.  I share
+notebooks there for Kaggle,
+Colab, and Lightning.
+Today's notebook
+is the
+Minimax H3 video generator, and it's currently
+only available on Kaggle.
+Link in the description.  I
+click on Kaggle, then "
+copy and edit", and the notebook
+opens.  My
+links are above, and
+if you haven't
+subscribed yet, I'd
+love it if you
+did.  Now
+the settings are important
+.  Open
+settings,
+find accelerator,
+and select GPU T4*2.  Without
+this, nothing
+will work.  If you
+can't select this,
+verify
+your phone number first.
+Then check if
+the Internet is turned on.
+After that,
+click "run all".
+Now the notebook does
+everything itself.  It
+checks your GPUs,
+installs ComfyUI and
+packages, and
+downloads models,
+about 50 GB.
+Wait 15–30 minutes.
+Drink some coffee.  While
+it's running, I'll tell you
+what's going on in the
+background, because there's
+a little ComfyUI running under the hood.  To be honest
+, I'm not a big
+fan of ComfyUI.  I'm a
+developer, and yet these
+nodes: connect here,
+drag there—it
+stresses me out.  Of course
+, it's more professional and
+gives you better control,
+but why
+complicate life
+when you can have a simple
+page?  Many
+people are intimidated by ComfyUI.  So
+ComfyUI works quietly in the
+background, and in front of it you
+get a clean
+page.  I think
+this is perfect.  And if you
+like ComfyUI,
+there is a
+link to the
+extended ComfyUI in the upper right corner of the page.  This is
+for you.  So, steps 1,
+2, 3. It recognized
+both GPUs, and is now
+installing packages.
+Follow the
+steps.  Sometimes after
+installing models,
+Kaggle's RAM becomes full and the
+step stops.  Here's
+how to check it.
+At the top you will see "
+cancel run" while the notebook
+is running.  If you
+see "run all" again, it
+means something
+has stopped.  Just
+click "run all"
+again.  It will continue
+working and not
+download everything
+again.  No problems
+.  Here we are.  Everything is
+ready.  Scroll to
+step 6 and you will see a
+green box saying
+that the studio is ready.
+Click "open H3 studio".
+Sometimes antivirus or
+DNS blocks
+redirects.
+If you see an
+"access denied" page,
+here's a clever trick.
+Copy the link,
+open a new
+tab, and paste
+it there.
+Make sure that
+the address contains /h3
+and the key after it.
+Press Enter and it
+will open.  And this is
+our studio.  You have a
+prompt box and
+some ready-made
+hints if you
+want to just give it a
+try.  You
+choose the format: 16 by
+9, 9 by 16 or square.
+Then the quality:
+draft, standard
+or high.  The highest
+setting gives
+approximately 864 by 480
+pixels.  Next is
+the duration and
+speed mode.  I
+recommend VDN 8 steps
+.  I also left
+Turbo 8 steps,
+experimental
+Turbo 4 steps, and a
+20-step slow mode on the list
+for those who
+like to experiment.
+I don't recommend the
+latter.  He is very
+slow.  You can
+add the first and
+last frames if
+you want to start or
+end the video with
+your own
+images.    The
+reference
+image feature is not yet available in this
+notebook
+.  I'm preparing a
+separate notebook for
+her and will make a
+video about it soon.  One
+important note:
+this link contains a
+password.  It's just for
+you.  Do not distribute
+it or post
+screenshots.  Let's
+protest.
+Originally 16 by 9, 15
+seconds, lowest
+quality, draft from VDN.
+My prompt: a lonely
+subway station in
+2D animation style.  I click "
+create video".  You
+will see the
+prompt read, the
+models loaded, and then the
+generation begins.  Approximately
+16 minutes.  Here's a tip.
+The page may
+show that
+a generation is in progress, while
+Kaggle
+has actually stopped.  So
+check the
+top of your
+notebook from time to time.  And that's it.  16
+minutes 50 seconds for 15
+seconds of video.  The time
+may vary by 10
+seconds in either
+direction.  Click "
+download video" and you have it
+.  Let's
+see.
+Honestly, friends, it did
+n't work out very well.  The quality of
+the draft is noticeable.  But
+remember, these are the
+lowest
+settings on a
+old GPU.  Now let
+'s try something more difficult.
+Same format, but
+12 seconds in the highest
+quality with a different
+prompt.  Laundry,
+again in 2D
+animation.  This took
+about 23 minutes.  And
+here's what I have to
+tell you.  At the highest
+quality, 15 seconds in
+16x9 format
+exhausted Kaggle's memory
+, and everything
+crashed for me.  So if
+you want 15 seconds,
+use
+draft or
+standard quality.
+For high quality,
+my limit was 12
+seconds.  You can
+try 13 or 14. I have
+n't tried.  Let's take
+a look and
+compare it to the first
+result.
+Last test.  9 by 16,
+vertical.  Highest
+quality, 15 seconds.  On a
+good day, this might
+pass.  Let's see
+if today is a good
+day.  I click "
+create", and lo and behold, it
+stopped.  Kaggle
+ran out of memory.
+You see, the
+progress bar is no longer
+displayed.  My
+request was probably
+too long, which doesn't
+help either.  I wanted to
+show you this because
+sooner or later it
+will happen to you too,
+but that's not a problem.
+Just click "run
+all" again.  The models are already
+loaded, so you can
+get back
+to work quickly.  So
+let's approach this
+wisely.
+Vertical format,
+highest quality, 12
+seconds.  Generate.  And
+again, keep an eye
+on your laptop, because this
+page can be a little
+buggy.  It may
+seem like
+a generation is coming, although
+in fact it has been
+canceled.  And that's it.
+About 25 minutes.  This is
+an advertisement for a watch.
+Let's see.
+As for the quality, I wouldn't
+call it
+incredible, but it's not
+bad either.  To be honest,
+it's pretty good.    A
+beautiful
+watch ad created
+for free in a
+browser tab.
+Let me give you
+some advice.  First:
+for 15 seconds,
+use "draft"
+or "standard."  Second: for the
+best quality,
+seconds in "high" mode worked for me.
+Third: English
+queries work
+best, and you can
+add a line
+starting with "audio:"
+to describe sound and
+music.  Fourth:
+if the step
+stops,
+Fifth: download
+videos from the page
+before you stop
+your laptop, because they are
+only saved in
+this session.  And sixth:
+when you're done,
+stop the cell with the
+square button.    The
+GPU timer runs while
+the laptop is running, and
+you only have about 30
+hours a week.  And
+please
+read the
+model license before
+using or
+distributing what you create.
+Minimax H3 has its own
+community license with
+rules about
+where and how you can
+use it,
+especially if you
+want to make money from it
+.  Also, don't
+pass off AI videos as
+real footage.
+Let's be
+responsible.
+So, this is Minimax H3 on Kaggle,
+for free, without
+its own GPU.  I know
+some of you don't have a
+video card at home.
+Some of you may not be able to
+pay for these services
+, and that's okay.  Kaggle
+can solve this
+problem for you.  Two
+free T4 cards,
+30 hours a week and
+this laptop.  That's why
+I created it.
+If this
+helped you even a little,
+please subscribe to the
+channel and write in the
+comments what I should
+test
+next.
+Reference
+images?
+Image in video?
+Or something else?  I love
+you all.  Take care
+and see you in the
+next video.
