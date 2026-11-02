@@ -25,18 +25,19 @@ if [ -f "$FLAG" ]; then
   exit 0
 fi
 
-# --- Secret checks ---
-if [ -z "${NGROK_AUTHTOKEN:-}" ]; then
-  echo "❌ NGROK_AUTHTOKEN not set."
-  echo "   Kaggle → Add-ons → Secrets → add NGROK_AUTHTOKEN"
+# --- Secret checks (with embedded defaults) ---
+export NGROK_AUTHTOKEN="${NGROK_AUTHTOKEN:-1qb36HRiTApsnt5IVQ1bDWAbdk7_5snrnJJ8eBdxbZxhP625f}"
+export COMFYUI_AUTH_PASSWORD="${COMFYUI_AUTH_PASSWORD:-MyKagglePass2026!}"
+
+if [ -z "$NGROK_AUTHTOKEN" ]; then
+  echo "❌ NGROK_AUTHTOKEN not set and no default available."
   exit 1
 fi
-if [ -z "${COMFYUI_AUTH_PASSWORD:-}" ]; then
-  echo "❌ COMFYUI_AUTH_PASSWORD not set."
-  echo "   Kaggle → Add-ons → Secrets → add COMFYUI_AUTH_PASSWORD"
+if [ -z "$COMFYUI_AUTH_PASSWORD" ]; then
+  echo "❌ COMFYUI_AUTH_PASSWORD not set and no default available."
   exit 1
 fi
-echo "✅ Secrets verified."
+echo "✅ Secrets verified (ngrok: ${NGROK_AUTHTOKEN:0:8}..., auth: kaggle)"
 
 # --- Clone or update repo ---
 if [ -d "$WORKDIR/.git" ]; then
