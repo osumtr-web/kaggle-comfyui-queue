@@ -1,26 +1,73 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Kaggle GPU-as-a-Service — Start All Services
+# Kaggle GPU-as-a-Service — Start Selected Services
 # Usage: bash start.sh
+# Reads choices from install.sh or uses defaults (all core services).
 # =============================================================================
-set -euo pipefail
+set -uo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
 
 WORKDIR="/kaggle/working/kaggle-comfyui-queue"
-cd "$WORKDIR"
+CHOICES_FILE="/kaggle/working/.kgpu_choices"
 
-echo "🚀 Starting Kaggle GPU-as-a-Service..."
+info() { echo -e "${BLUE}ℹ${NC} $1"; }
+success() { echo -e "${GREEN}✓${NC} $1"; }
+warn() { echo -e "${YELLOW}⚠${NC} $1"; }
+err() { echo -e "${RED}✗${NC} $1"; }
 
-# --- Secret checks ---
-if [ -z "${COMFYUI_AUTH_PASSWORD:-}" ]; then
- echo "❌ COMFYUI_AUTH_PASSWORD not set. Add it via Kaggle Secrets."
+cd "$WORKDIR" || { err "Workdir not found: $WORKDIR. Run install.sh first."; exit 1; }
+
+echo -e "${CYAN}${BOLD}"
+echo "╔═══════════════════════════════════════════════════╗"
+echo "║ 🚀 Kaggle GPU-as-a-Service — Service Launcher ║"
+echo "╚═══════════════════════════════════════════════════╝"
+echo -e "${NC}"
+
+# --- Load installation choices ---
+INSTALL_COMFYUI=1
+INSTALL_QUEUE_API=1
+INSTALL_QUEUE_CONSUMER=1
+INSTALL_WATCHDOG=1
+INSTALL_NGROK=1
+INSTALL_OLLAMA=0
+MODE="single"
+COMFYUI_PASS=""
+NGROK_TOKEN=""
+
+if [ -f "$CHOICES_FILE" ]; then
+ # shellcheck disable=SC1090
+ source "$CHOICES_FILE"
+ info "Loaded choices from $CHOICES_FILE"
+else
+ warn "No choices file found. Starting all core services with defaults."
+fi
+
+# --- Auth checks ---
+COMFYUI_AUTH_PASSWORD="${COMFYUI_AUTH_PASSWORD:-${COMFYUI_PASS:-}}"
+NGROK_AUTHTOKEN="${NGROK_AUTHTOKEN:-${NGROK_TOKEN:-}}"
+
+if [ -z "$COMFYUI_AUTH_PASSWORD" ]; then
+ err "COMFYUI_AUTH_PASSWORD not set. Add via Kaggle Secrets or run install.sh."
  exit 1
 fi
-if [ -z "${NGROK_AUTHTOKEN:-}" ]; then
- echo "❌ NGROK_AUTHTOKEN not set. Add it via Kaggle Secrets."
+
+if [ "$INSTALL_NGROK" -eq 1 ] && [ -z "$NGROK_AUTHTOKEN" ]; then
+ err "NGROK_AUTHTOKEN not set but ngrok is selected. Add via Kaggle Secrets or run install.sh."
  exit 1
 fi
+
+export COMFYUI_AUTH_PASSWORD
+export NGROK_AUTHTOKEN
 
 # --- Kill stale processes ---
+info "Cleaning up stale processes..."
 for port in 8188 8189; do
  fuser -k ${port}/tcp 2>/dev/null || true
 done
@@ -28,75 +75,133 @@ pkill -f "ngrok http 8188" 2>/dev/null || true
 pkill -f "queue_api.py" 2>/dev/null || true
 pkill -f "queue_consumer.py" 2>/dev/null || true
 pkill -f "watchdog.py" 2>/dev/null || true
+pkill -f "ollama serve" 2>/dev/null || true
 sleep 1
+success "Stale processes cleaned."
 
-# --- Start ComfyUI (background) ---
-echo "🎨 Starting ComfyUI on :8188..."
-cd /kaggle/working/ComfyUI
-nohup python3 main.py --listen 0.0.0.0 --port 8188 --multi-gpu \
+# --- Start ComfyUI ---
+if [ "$INSTALL_COMFYUI" -eq 1 ]; then
+ COMFYUI_DIR="/kaggle/working/ComfyUI"
+ if [ -d "$COMFYUI_DIR" ]; then
+ info "Starting ComfyUI on :8188..."
+ cd "$COMFYUI_DIR"
+ nohup python3 main.py --listen 0.0.0.0 --port 8188 --multi-gpu \
  > /kaggle/working/comfyui.log 2>&1 &
-echo "   PID: $!"
-cd "$WORKDIR"
+ echo " PID: $!"
+ cd "$WORKDIR"
 
-# --- Wait for ComfyUI ready ---
-echo "⏳ Waiting for ComfyUI..."
-for i in $(seq 1 60); do
+ info "Waiting for ComfyUI ready..."
+ for i in $(seq 1 60); do
  if curl -s http://127.0.0.1:8188/system_stats > /dev/null 2>&1; then
- echo "✅ ComfyUI ready."
+ success "ComfyUI ready on :8188"
  break
  fi
  sleep 2
-done
+ done
+ else
+ warn "ComfyUI directory not found. Skipping."
+ fi
+else
+ info "ComfyUI skipped (not selected during install)."
+fi
 
-# --- Start ngrok (foreground-ish, backgrounded) ---
-echo "🌐 Starting ngrok tunnel..."
-nohup python3 scripts/ngrok_launcher.py > /kaggle/working/ngrok.log 2>&1 &
-NGROK_PID=$!
-echo "   PID: $NGROK_PID"
+# --- Start Ollama ---
+if [ "$INSTALL_OLLAMA" -eq 1 ]; then
+ if command -v ollama &>/dev/null; then
+ info "Starting Ollama server..."
+ nohup ollama serve > /kaggle/working/ollama.log 2>&1 &
+ echo " PID: $!"
+ sleep 2
+ success "Ollama started."
+ else
+ warn "Ollama not installed. Skipping."
+ fi
+else
+ info "Ollama skipped (not selected during install)."
+fi
 
-# --- Wait for ngrok URL ---
-echo "⏳ Waiting for ngrok URL..."
-for i in $(seq 1 30); do
+# --- Start ngrok ---
+if [ "$INSTALL_NGROK" -eq 1 ]; then
+ info "Starting ngrok tunnel..."
+ nohup python3 scripts/ngrok_launcher.py > /kaggle/working/ngrok.log 2>&1 &
+ NGROK_PID=$!
+ echo " PID: $NGROK_PID"
+
+ info "Waiting for ngrok URL..."
+ for i in $(seq 1 30); do
  if [ -f /kaggle/working/ngrok_url.txt ] && [ -s /kaggle/working/ngrok_url.txt ]; then
  URL=$(cat /kaggle/working/ngrok_url.txt)
- echo "✅ ngrok URL: $URL"
+ success "ngrok URL: $URL"
  break
  fi
  sleep 2
-done
+ done
+else
+ info "ngrok skipped (not selected during install)."
+fi
 
 # --- Start Queue API ---
-echo "📡 Starting Queue API on :8189..."
-nohup python3 scripts/queue_api.py > /kaggle/working/api.log 2>&1 &
-echo "   PID: $!"
+if [ "$INSTALL_QUEUE_API" -eq 1 ]; then
+ info "Starting Queue API on :8189..."
+ nohup python3 scripts/queue_api.py > /kaggle/working/api.log 2>&1 &
+ echo " PID: $!"
+ success "Queue API started."
+else
+ info "Queue API skipped (not selected during install)."
+fi
 
 # --- Start Queue Consumer ---
-echo "⚙️  Starting Queue Consumer..."
-nohup python3 scripts/queue_consumer.py > /kaggle/working/consumer.log 2>&1 &
-echo "   PID: $!"
+if [ "$INSTALL_QUEUE_CONSUMER" -eq 1 ]; then
+ info "Starting Queue Consumer..."
+ nohup python3 scripts/queue_consumer.py > /kaggle/working/consumer.log 2>&1 &
+ echo " PID: $!"
+ success "Queue Consumer started."
+else
+ info "Queue Consumer skipped (not selected during install)."
+fi
 
 # --- Start Watchdog ---
-echo "👁️  Starting Watchdog..."
-nohup python3 scripts/watchdog.py > /kaggle/working/watchdog_stdout.log 2>&1 &
-echo "   PID: $!"
+if [ "$INSTALL_WATCHDOG" -eq 1 ]; then
+ info "Starting Watchdog..."
+ nohup python3 scripts/watchdog.py > /kaggle/working/watchdog_stdout.log 2>&1 &
+ echo " PID: $!"
+ success "Watchdog started."
+else
+ info "Watchdog skipped (not selected during install)."
+fi
 
 sleep 2
 
+# --- Summary ---
 echo ""
-echo "=============================================="
-echo "🚀 ALL SERVICES RUNNING"
-echo "=============================================="
-if [ -f /kaggle/working/ngrok_url.txt ]; then
- echo "🌐 URL: $(cat /kaggle/working/ngrok_url.txt)"
+echo -e "${GREEN}${BOLD}=============================================="
+echo " 🚀 ALL SELECTED SERVICES RUNNING"
+echo -e "==============================================${NC}"
+echo ""
+echo " Mode: $MODE"
+if [ -f /kaggle/working/ngrok_url.txt ] && [ "$INSTALL_NGROK" -eq 1 ]; then
+ echo " 🌐 URL: $(cat /kaggle/working/ngrok_url.txt)"
 fi
-echo "🔑 Auth: kaggle / [your COMFYUI_AUTH_PASSWORD]"
+echo " 🔑 Auth: kaggle / $COMFYUI_AUTH_PASSWORD"
 echo ""
-echo "Logs:"
+echo -e " ${BOLD}Active services:${NC}"
+[ "$INSTALL_COMFYUI" -eq 1 ] && echo " ✓ ComfyUI (:8188)"
+[ "$INSTALL_OLLAMA" -eq 1 ] && echo " ✓ Ollama (LLM)"
+[ "$INSTALL_NGROK" -eq 1 ] && echo " ✓ ngrok (HTTPS tunnel)"
+[ "$INSTALL_QUEUE_API" -eq 1 ] && echo " ✓ Queue API (:8189)"
+[ "$INSTALL_QUEUE_CONSUMER" -eq 1 ] && echo " ✓ Queue Consumer"
+[ "$INSTALL_WATCHDOG" -eq 1 ] && echo " ✓ Watchdog"
+echo ""
+echo -e " ${BOLD}Logs:${NC}"
 echo " ComfyUI: /kaggle/working/comfyui.log"
+[ "$INSTALL_OLLAMA" -eq 1 ] && echo " Ollama: /kaggle/working/ollama.log"
 echo " ngrok: /kaggle/working/ngrok.log"
 echo " API: /kaggle/working/api.log"
 echo " Consumer: /kaggle/working/consumer.log"
 echo " Watchdog: /kaggle/working/watchdog_stdout.log"
 echo ""
-echo "Test: curl -u kaggle:PASS https://YOUR-URL.ngrok-free.app/api/health"
-echo "=============================================="
+if [ "$INSTALL_NGROK" -eq 1 ] && [ -f /kaggle/working/ngrok_url.txt ]; then
+ echo " Test: curl -u kaggle:$COMFYUI_AUTH_PASSWORD $(cat /kaggle/working/ngrok_url.txt)/api/health"
+fi
+echo ""
+echo -e "${GREEN}${BOLD}==============================================${NC}"
