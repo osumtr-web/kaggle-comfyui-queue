@@ -1,21 +1,11 @@
-# 🚀 Quick Start — 2 Commands
+# 🚀 Quick Start — 2 Commands + Plug-and-Play CLI
 
-## Paste into a Kaggle notebook cell:
+## Step 1: Install (pick your use case)
 
 ```bash
-# Step 1: Install (pick your use case)
 !git clone https://github.com/osumtr-web/kaggle-comfyui-queue.git /kaggle/working/kaggle-comfyui-queue
 !bash /kaggle/working/kaggle-comfyui-queue/install.sh
-
-# Step 2: Start services
-!bash /kaggle/working/kaggle-comfyui-queue/start.sh
 ```
-
-**That's it.** Your ngrok URL is retrieved **dynamically** via the ngrok local API (port 4040) — no manual copy-paste needed. The URL also persists to `/kaggle/working/ngrok_url.txt` as a fallback.
-
----
-
-## What You'll See
 
 The installer asks **one question**:
 
@@ -26,6 +16,50 @@ The installer asks **one question**:
 | **3** | 📊 ML — Classification & Embeddings | CLIP + BGE |
 
 Everything else is automatic: dependencies, auth, ngrok, directories, model downloads.
+
+## Step 2: Start services
+
+```bash
+!bash /kaggle/working/kaggle-comfyui-queue/start.sh
+```
+
+Your ngrok URL is retrieved **dynamically** via the ngrok local API (port 4040) — no manual copy-paste needed.
+
+---
+
+## Step 3: Use the `kgpu` CLI (zero config)
+
+No passwords. No URLs. Everything auto-detected.
+
+```bash
+# Check system health
+!bash scripts/kgpu health
+
+# Generate an image
+!bash scripts/kgpu generate "a cyberpunk city at sunset, cinematic lighting"
+
+# Generate text (LLM mode)
+!bash scripts/kgpu generate "write a haiku about debugging" llm llama3.2:3b
+
+# List all jobs
+!bash scripts/kgpu jobs
+
+# Check a specific job
+!bash scripts/kgpu job <job_id>
+
+# List installed models
+!bash scripts/kgpu models
+```
+
+### All Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `kgpu health` | System health check |
+| `kgpu jobs [status]` | List jobs (optional: pending/running/completed) |
+| `kgpu job <id>` | Check specific job status |
+| `kgpu models` | List installed models |
+| `kgpu generate "prompt" [type] [model]` | Submit generation job |
 
 ---
 
@@ -43,19 +77,6 @@ A single strong password is used for **all** services — ComfyUI, ngrok tunnel,
 
 ---
 
-## Test Your Server
-
-```bash
-curl -u kaggle:KaggleGPU2026!SecureAccess https://YOUR-URL.ngrok-free.app/api/health
-```
-
-Expected response:
-```json
-{"comfyui": "running", "queue_api": "running", "consumer": "running", "ngrok": "running"}
-```
-
----
-
 ## Private Repo?
 
 ```bash
@@ -64,16 +85,12 @@ Expected response:
 
 Or paste when prompted interactively.
 
----
-
 ## Non-Interactive (CI / Scripts)
 
 ```bash
 !bash install.sh --case comfyui --non-interactive
 !bash start.sh
 ```
-
----
 
 ## Change Your Setup Later
 

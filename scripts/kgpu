@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+# =============================================================================
+# kgpu — Plug-and-play CLI for Kaggle GPU-as-a-Service
+# Auto-detects ngrok URL and password from config/auth.env
+# Usage: kgpu health | kgpu jobs | kgpu generate "prompt" | kgpu models
+# =============================================================================
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKDIR="${WORKDIR:-/kaggle/working/kaggle-comfyui-queue}"
+AUTH_ENV="$WORKDIR/config/auth.env"
+URL_FILE="/kaggle/working/ngrok_url.txt"
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+BLUE='\033[0;34m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
+
+err() { echo -e "${RED}✗${NC} $1" >&2; }
+info() { echo -e "${BLUE}ℹ${NC} $1"; }
+success() { echo -e "${GREEN}✓${NC} $1"; }
+
+# --- Load credentials ---
+if [ -f "$AUTH_ENV" ]; then
+    # shellcheck disable=SC1090
+    source "$AUTH_ENV"
+fi
+
+KGPU_USERNAME="${KGPU_USERNAME:-kaggle}"
+KGPU_PASSWORD="${KGPU_PASSWORD:-KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479}"
+
+# --- Get ngrok URL dynamically ---
+get_ngrok_url() {
+    # Primary: query ngrok local API (port 4040)
+    local api_url
+    api_url=$(curl -s http://127.0.0.1:4040/api/tunnels 2>/dev/null \
+        | python3 -c "import sys,json; d=json.load(sys.stdin); print(next((t['public_url'] for t in d.get('tunnels',[]) if t.get('public_url','').startswith('https://')),''))" 2>/dev/null || true)
+    if [ -n "$api_url" ]; then
+        echo "$api_url"
+        return 0
+    fi
+
+    # Fallback: read from file
+    if [ -f "$URL_FILE" ] && [ -s "$URL_FILE" ]; then
+        cat "$URL_FILE"
+        return 0
+    fi
+
+    err "Cannot find ngrok URL. Is ngrok running? Check /kaggle/working/ngrok.log"
+    return 1
+}
+
+# --- Commands ---
+cmd_health() {
+    local url
+    url=$(get_ngrok_url) || exit 1
+    info "Checking health..."
+    curl -s -u "$KGPU_USERNAME:$KGPU_PASSWORD" "$url/api/health" | python3 -m json.tool
+}
+
+cmd_jobs() {
+    local url
+    url=$(get_ngrok_url) || exit 1
+    local status="${1:-}"
+    if [ -n "$status" ]; then
+        info "Listing jobs (status=$status)..."
+        curl -s -u "$KGPU_USERNAME:$KGPU_PASSWORD" "$url/api/jobs?status=$status" | python3 -m json.tool
+    else
+        info "Listing all jobs..."
+        curl -s -u "$KGPU_USERNAME:$KGPU_PASSWORD" "$url/api/jobs" | python3 -m json.tool
+    fi
+}
+
+cmd_job() {
+    local url
+    url=$(get_ngrok_url) || exit 1
+    local job_id="$1"
+    info "Job status: $job_id"
+    curl -s -u "$KGPU_USERNAME:$KGPU_PASSWORD" "$url/api/jobs/$job_id" | python3 -m json.tool
+}
+
+cmd_models() {
+    local url
+    url=$(get_ngrok_url) || exit 1
+    info "Installed models..."
+    curl -s -u "$KGPU_USERNAME:$KGPU_PASSWORD" "$url/api/models" | python3 -m json.tool
+}
+
+cmd_generate() {
+    local url
+    url=$(get_ngrok_url) || exit 1
+    local prompt="$1"
+    local model_type="${2:-diffusion_image}"
+    local model_id="${3:-black-forest-labs/FLUX.1-dev}"
+
+    info "Submitting job..."
+    info "  Prompt: $prompt"
+    info "  Model: $model_id ($model_type)"
+
+    local response
+    response=$(curl -s -u "$KGPU_USERNAME:$KGPU_PASSWORD" -X POST "$url/api/jobs" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"model_id\": \"$model_id\",
+            \"model_type\": \"$model_type\",
+            \"prompt\": \"$prompt\",
+            \"params\": {}
+        }")
+
+    echo "$response" | python3 -m json.tool
+
+    local job_id
+    job_id=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin).get('job_id',''))" 2>/dev/null || true)
+    if [ -n "$job_id" ]; then
+        echo ""
+        info "Track progress: kgpu job $job_id"
+    fi
+}
+
+cmd_help() {
+    echo -e "${BOLD}${CYAN}kgpu — Kaggle GPU-as-a-Service CLI${NC}"
+    echo ""
+    echo "Usage: kgpu <command> [args...]"
+    echo ""
+    echo "Commands:"
+    echo "  health                    Check system health"
+    echo "  jobs [status]             List jobs (optional: pending/running/completed)"
+    echo "  job <id>                  Check job status"
+    echo "  models                    List installed models"
+    echo "  generate \"prompt\" [type] [model_id]"
+    echo "                            Submit generation job"
+    echo "                            type: diffusion_image|diffusion_video|llm"
+    echo "                            model_id: black-forest-labs/FLUX.1-dev (default)"
+    echo ""
+    echo "Examples:"
+    echo "  kgpu health"
+    echo "  kgpu jobs pending"
+    echo "  kgpu generate \"a cyberpunk city at sunset\""
+    echo "  kgpu generate \"write a haiku about debugging\" llm llama3.2:3b"
+    echo ""
+    echo "Auth: Auto-detected from config/auth.env"
+    echo "URL: Auto-detected from ngrok API or /kaggle/working/ngrok_url.txt"
+}
+
+# --- Main ---
+case "${1:-help}" in
+    health) cmd_health ;;
+    jobs) cmd_jobs "${2:-}" ;;
+    job) cmd_job "${2:-}" ;;
+    models) cmd_models ;;
+    generate) cmd_generate "${2:-}" "${3:-diffusion_image}" "${4:-black-forest-labs/FLUX.1-dev}" ;;
+    help|--help|-h) cmd_help ;;
+    *) err "Unknown command: $1"; cmd_help; exit 1 ;;
+esac

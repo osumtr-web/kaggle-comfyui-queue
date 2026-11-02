@@ -40,11 +40,45 @@ That's it. The installer:
 !bash /kaggle/working/kaggle-comfyui-queue/start.sh
 ```
 
-Your ngrok URL is retrieved **dynamically** via the ngrok local API (port 4040) — no manual copy-paste needed. The URL also persists to `/kaggle/working/ngrok_url.txt` as a fallback. Use it from anywhere:
+Your ngrok URL is retrieved **dynamically** via the ngrok local API (port 4040) — no manual copy-paste needed. The URL also persists to `/kaggle/working/ngrok_url.txt` as a fallback.
+
+---
+
+## Plug-and-Play CLI (`kgpu`)
+
+No more copying passwords or URLs. The `kgpu` command auto-detects everything:
 
 ```bash
-curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 https://YOUR-URL.ngrok-free.app/api/health
+# Check system health
+!bash scripts/kgpu health
+
+# Generate an image
+!bash scripts/kgpu generate "a cyberpunk city at sunset, cinematic lighting"
+
+# Generate text (LLM mode)
+!bash scripts/kgpu generate "write a haiku about debugging" llm llama3.2:3b
+
+# List all jobs
+!bash scripts/kgpu jobs
+
+# Check a specific job
+!bash scripts/kgpu job <job_id>
+
+# List installed models
+!bash scripts/kgpu models
 ```
+
+The CLI reads credentials from `config/auth.env` and the ngrok URL from the local API automatically. Zero configuration needed.
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `kgpu health` | System health check |
+| `kgpu jobs [status]` | List jobs (optional filter: pending/running/completed) |
+| `kgpu job <id>` | Check specific job status |
+| `kgpu models` | List installed models |
+| `kgpu generate "prompt" [type] [model]` | Submit generation job |
 
 ---
 
@@ -59,48 +93,6 @@ A single strong password is used for **all** services — ComfyUI, ngrok tunnel,
 | ngrok Token | Embedded in `config/auth.env` | Edit `config/auth.env` → commit → push → re-run `install.sh` |
 
 **To change your password:** edit `config/auth.env`, `git commit`, `git push`, then re-run `install.sh`. One file controls everything.
-
----
-
-## Usage Examples
-
-### Generate an Image (ComfyUI mode)
-
-```bash
-curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 -X POST https://YOUR-URL.ngrok-free.app/api/jobs \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model_id": "black-forest-labs/FLUX.1-dev",
-    "model_type": "diffusion_image",
-    "prompt": "A cyberpunk city at sunset, cinematic lighting, 8k",
-    "params": {"width": 1024, "height": 1024, "steps": 28}
-  }'
-```
-
-### Generate Text (LLM mode)
-
-```bash
-curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 -X POST https://YOUR-URL.ngrok-free.app/api/jobs \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model_id": "llama3.2:3b",
-    "model_type": "llm",
-    "prompt": "Write a Python function to sort a list",
-    "params": {"max_tokens": 256}
-  }'
-```
-
-### Check Job Status
-
-```bash
-curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 https://YOUR-URL.ngrok-free.app/api/jobs/{job_id}
-```
-
-### List All Jobs
-
-```bash
-curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 https://YOUR-URL.ngrok-free.app/api/jobs
-```
 
 ---
 
@@ -124,6 +116,7 @@ curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 https://YOUR-URL.ngrok-f
 - **VRAM safety** — checks GPU memory before dispatching jobs
 - **Output rotation** — auto-deletes old files at 80% disk usage
 - **Basic auth** — your tunnel is password-protected by default
+- **Dynamic URL retrieval** — ngrok URL fetched from local API (port 4040)
 
 ---
 
@@ -146,6 +139,8 @@ If you forked and made your repo private:
 ### Install More Models at Runtime
 
 ```bash
+!bash scripts/kgpu models  # see what's installed
+# Or use the API directly:
 curl -u kaggle:KAG-f47ac10b-58cc-4372-a567-0e02b2c3d479 -X POST https://YOUR-URL/api/models/install \
   -H "Content-Type: application/json" \
   -d '{"hf_repo": "stabilityai/stable-diffusion-xl-base-1.0", "model_type": "diffusion_image"}'
@@ -163,6 +158,8 @@ KGPU_MODE=multi
 ---
 
 ## API Reference
+
+For direct API access (the `kgpu` CLI wraps these endpoints):
 
 ### Endpoints
 
@@ -216,6 +213,7 @@ KGPU_MODE=multi
 | **Model install fails** | Check internet; for gated HF models, set `HF_TOKEN` in Kaggle Secrets |
 | **Disk full** | Watchdog auto-cleans; manual: `rm /kaggle/working/output/*` |
 | **ngrok URL changes** | Free tier limitation — upgrade for static domains |
+| **kgpu can't find URL** | Ensure ngrok is running; check `/kaggle/working/ngrok.log` |
 
 ---
 
@@ -226,11 +224,14 @@ kaggle-comfyui-queue/
 ├── install.sh          # Interactive installer (pick your use case)
 ├── start.sh            # Launch selected services
 ├── QUICKSTART.md       # 2-command quick start
+├── config/
+│   └── auth.env        # Unified password + ngrok token (edit to change)
 ├── scripts/
+│   ├── kgpu            # Plug-and-play CLI (auto-detects URL + auth)
 │   ├── queue_api.py    # REST API (FastAPI)
 │   ├── queue_consumer.py # Job dispatcher
 │   ├── watchdog.py     # Auto-recovery daemon
-│   ├── ngrok_launcher.py # Tunnel with auth
+│   ├── ngrok_launcher.py # Tunnel with auth + dynamic URL via API
 │   └── model_registry.py # Dynamic model installer
 ├── configs/            # ComfyUI settings, VRAM manifest
 └── workflows/          # Pre-approved ComfyUI workflows
