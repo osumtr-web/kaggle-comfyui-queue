@@ -288,9 +288,19 @@ download_model() {
  "https://huggingface.co/Comfy-Org/Flux-1-Dev/resolve/main/flux1-dev-fp8.safetensors" \
  "/kaggle/working/models/unet/flux1-dev.safetensors"
 
-[ "$INSTALL_MINIMAX_H3" -eq 1 ] && download_model \
+# --- Disk space pre-check for MiniMax-H3 (19.5GB) ---
+if [ "$INSTALL_MINIMAX_H3" -eq 1 ]; then
+ AVAIL_KB=$(df -k /kaggle/working | awk 'NR==2{print $4}')
+ AVAIL_GB=$((AVAIL_KB / 1048576))
+ if [ "$AVAIL_GB" -lt 22 ]; then
+ warn "Skipping MiniMax-H3: only ${AVAIL_GB}GB free (need 22GB). FLUX already consumed most disk."
+ warn "To install MiniMax-H3, use a Kaggle dataset mount or reduce other model downloads."
+ else
+ download_model \
  "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors" \
  "/kaggle/working/models/checkpoints/minimax_h3.safetensors"
+ fi
+fi
 
 [ "$INSTALL_SDXL" -eq 1 ] && download_model \
  "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors" \
