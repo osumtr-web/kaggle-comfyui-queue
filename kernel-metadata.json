@@ -1,0 +1,9 @@
+{
+ "id": "jalilososum/comfyui-gpu-service-queue-watchdog",
+ "title": "ComfyUI GPU Service Queue Watchdog",
+ "code_file": "setup.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": false,
+ "enable_gpu": true
+}

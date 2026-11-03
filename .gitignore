@@ -32,4 +32,4 @@ output/
 Thumbs.db
 
 # EGM review artifacts (too large for GitHub)
-goldfish-reports/
+goldfish-reports/config/auth.env

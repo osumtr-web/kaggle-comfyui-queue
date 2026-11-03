@@ -875,16 +875,44 @@ async def process_job(
         # --- Poll for completion ---------------------------------------------
         completion = await poll_completion(session, prompt_id)
         if completion["ok"]:
+            # T6: Per-job artifact directory with metadata JSON
+            job_output_dir = Path(f"/kaggle/working/output/{job_id}")
+            job_output_dir.mkdir(parents=True, exist_ok=True)
+
+            raw_result_path = completion.get("result_path", "")
+            # Move/copy artifact files into per-job directory
+            artifact_files = []
+            for fname in completion.get("filenames", []):
+                src = Path("/kaggle/working/ComfyUI/output") / fname
+                dst = job_output_dir / fname
+                if src.exists():
+                    import shutil
+                    shutil.copy2(str(src), str(dst))
+                    artifact_files.append(str(dst))
+
+            # Write metadata JSON alongside artifacts
+            metadata = {
+                "job_id": job_id,
+                "prompt_id": prompt_id,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "artifacts": artifact_files,
+                "original_result_path": raw_result_path,
+            }
+            meta_path = job_output_dir / "metadata.json"
+            with open(meta_path, "w") as mf:
+                json.dump(metadata, mf, indent=2)
+
             update_job(
                 conn,
                 job_id,
                 status="completed",
                 completed_at=datetime.now(timezone.utc).isoformat(),
-                result_path=completion.get("result_path", ""),
+                result_path=str(job_output_dir),
             )
             log.info(
-                "Job %s completed successfully",
+                "Job %s completed successfully — artifacts in %s",
                 job_id,
+                job_output_dir,
                 extra={"job_id": job_id, "prompt_id": prompt_id},
             )
             _jobs_since_backup += 1
@@ -919,11 +947,26 @@ async def main():
     recover_orphaned_jobs(conn)
 
     backoff_until: float = 0.0
+    last_heartbeat_print: float = 0.0
+    HEARTBEAT_PRINT_INTERVAL = 300.0  # 5 minutes — prevents Kaggle 20-min idle timeout
 
     async with aiohttp.ClientSession() as session:
         try:
             while not shutdown.requested.is_set():
                 now = time.monotonic()
+
+                # Idle-timeout heartbeat: print status every 5 min so Kaggle doesn't kill the kernel
+                if now - last_heartbeat_print >= HEARTBEAT_PRINT_INTERVAL:
+                    pending_count = conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'pending'").fetchone()[0]
+                    running_count = conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'running'").fetchone()[0]
+                    log.info(
+                        "[%s] Consumer heartbeat: pending=%d, running=%d",
+                        datetime.now(timezone.utc).isoformat(),
+                        pending_count,
+                        running_count,
+                    )
+                    last_heartbeat_print = now
+
                 if now < backoff_until:
                     await asyncio.sleep(min(backoff_until - now, POLL_INTERVAL))
                     continue

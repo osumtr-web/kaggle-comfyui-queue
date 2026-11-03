@@ -1,0 +1,9 @@
+{
+ "id": "jalilososum/comfyui-ultimate-localtunnel",
+ "title": "ComfyUI Ultimate LocalTunnel",
+ "code_file": "ultimate_comfyui.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": false,
+ "enable_gpu": true
+}

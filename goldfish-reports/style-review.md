@@ -1,127 +1,102 @@
-# Style Goldfish Review: Kaggle ComfyUI Generation Queue Service
+# Style Review: Kaggle ComfyUI Queue Design Draft
 
-**Target Document:** `/Users/jalil/Documents/kaggle-comfyui-queue/design_draft.md`
 **Reviewer:** Style Goldfish (Technical Copy Editor)
+**Target:** `/docs/architecture/design_draft.md`
 **Date:** 2026-11-03
-**Mode:** REVIEW
 
 ---
 
-## Executive Summary
+## Summary
 
-The design document is largely well-structured and technically concrete. It avoids most common AI writing pitfalls such as excessive marketing fluff or subjective praise. However, there are specific instances of ungrounded claims, minor precision gaps, and opportunities to tighten phrasing for maximum engineering clarity. The following findings identify actionable improvements to elevate the document to professional specification standards.
+The document is largely well-structured and factual. Most sections are concise and actionable. Findings below target minor instances of subjective framing, filler phrasing, and imprecise terminology that reduce technical precision. No blockers identified; all findings are Major or Nit severity.
 
 ---
 
 ## Findings
 
-### 1. FLUFF & HYPE
+### 1. Subjective / Unverified Claim: "proven Kaggle deployment patterns"
 
-#### Finding 1.1: Ungrounded Problem Framing
-*   **Severity:** Nit
-*   **Affected Scope:** Section 1 (The Problem), Line 9
-*   **Style Rationale:** The phrase "expensive GPU hardware" is subjective and relative. "Expensive" varies by user budget and market conditions. Technical specifications should state constraints factually without emotional or economic qualifiers unless backed by specific cost thresholds.
-*   **Recommendation:** Replace with neutral constraint language.
-    *   *Before:* "Running AI generation models (video, image) requires expensive GPU hardware or paid cloud APIs."
-    *   *After:* "Running AI generation models (video, image) requires dedicated GPU hardware or paid cloud API access."
+- **Severity:** Major
+- **Affected Scope:** Section 1 (Overview), Line 5
+- **Style Rationale:** "Proven" is a subjective quality judgment. The document does not define what constitutes proof (e.g., production uptime metrics, test results, peer review). Replace with a factual descriptor such as "documented" or "observed in reference videos."
+- **Suggested Revision:** "...two reference videos demonstrating documented Kaggle deployment patterns."
 
-#### Finding 1.2: Promotional Phrasing in Solution Statement
-*   **Severity:** Nit
-*   **Affected Scope:** Section 1 (The Problem), Line 9
-*   **Style Rationale:** "Solves these gaps" implies a perfect resolution. Engineering documents should describe what the system *does*, not claim it *solves* problems absolutely. "Addresses" or "mitigates" is more precise and defensible.
-*   **Recommendation:**
-    *   *Before:* "This project solves these gaps by providing..."
-    *   *After:* "This project addresses these limitations by providing..."
+### 2. Filler Phrase: "entirely"
 
----
+- **Severity:** Nit
+- **Affected Scope:** Section 3.2 (Watchdog Mechanism), Line 59
+- **Style Rationale:** "This avoids indentation issues entirely" — "entirely" adds no measurable information. The avoidance of indentation issues is binary; either they are avoided or they are not. Remove the adverb.
+- **Suggested Revision:** "This avoids indentation issues and matches the pattern from the reference video."
 
-### 2. PRECISION GAPS
+### 3. Imprecise Terminology: "matches the proven pattern"
 
-#### Finding 2.1: Ambiguous Setup Time Guarantee
-*   **Severity:** Major
-*   **Affected Scope:** Section 2 (Overview), Line 14; Section 3 (Goals), Line 25
-*   **Style Rationale:** "<5 minutes" is stated as a hard guarantee but lacks defined boundary conditions. Setup time depends on Kaggle's network throughput, pip mirror latency, and model download sizes. Without specifying test conditions (e.g., "measured on fresh Kaggle GPU session with T4 x2, cold cache"), this metric is unverifiable and potentially misleading.
-*   **Recommendation:** Add measurement context or reframe as a target.
-    *   *Before:* "Installs ComfyUI + dependencies + ngrok in <5 minutes"
-    *   *After:* "Targets <5 minute installation on fresh Kaggle GPU session (T4 x2, cold cache). Actual time varies with network conditions."
+- **Severity:** Major
+- **Affected Scope:** Section 3.2 (Watchdog Mechanism), Line 59
+- **Style Rationale:** "Proven pattern" repeats the subjective framing from Finding #1. Additionally, "matches" is vague — does it mean identical implementation, similar architecture, or conceptual alignment? Specify the relationship.
+- **Suggested Revision:** "...and follows the same shell-backgrounding approach shown in the reference video."
 
-#### Finding 2.2: Vague Recovery Time Specification
-*   **Severity:** Nit
-*   **Affected Scope:** Section 3 (Goals), Line 27; Section 5.3 (Data Flow), Line 91
-*   **Style Rationale:** "Within 5 seconds" for auto-recovery is precise numerically but lacks definition of when the timer starts. Does it measure from process death detection or from watchdog poll cycle? The watchdog polls every 5s (Section 7.4), meaning worst-case detection latency alone approaches the stated recovery target.
-*   **Recommendation:** Clarify the measurement window.
-    *   *Before:* "watchdog restarts crashed components within 5 seconds"
-    *   *After:* "watchdog detects process death within 5s poll interval and initiates restart immediately upon detection"
+### 4. Marketing-Adjacent Phrasing: "fast inference"
 
-#### Finding 2.3: Undefined "High-Res Video Generation"
-*   **Severity:** Nit
-*   **Affected Scope:** Section 6 (Alternatives Considered), Line 122; Section 7.5 (VRAM Safety Protocol), Line 203
-*   **Style Rationale:** "High-res video generation" is used as justification for single-threaded FIFO and VRAM safety checks, but no resolution/framerate/fps threshold defines "high-res." This term is subjective and could mean 720p to one reader and 4K to another.
-*   **Recommendation:** Define the operational envelope.
-    *   *Before:* "Dual T4s are fully utilized by single high-res video generation"
-    *   *After:* "Dual T4s are fully utilized by single MiniMax H3 video generation at 1280x720, 24fps, 10s duration"
+- **Severity:** Nit
+- **Affected Scope:** Section 3.5 (Model Stack), Line 122
+- **Style Rationale:** "Fast inference" is a relative, unmeasured claim. Without a benchmark (e.g., "generates 1024×1024 image in <8s on T4"), the term conveys no actionable specification. Either provide a metric or remove the qualifier.
+- **Suggested Revision:** Replace "fast inference" with a concrete metric, or simply state "SDXL-based checkpoint."
 
----
+### 5. Redundant Emphasis: "NEVER hand-edit"
 
-### 3. OBJECTIVITY ISSUES
+- **Severity:** Nit
+- **Affected Scope:** Section 6 (Risk Register), Line 174
+- **Style Rationale:** All-caps "NEVER" is typographic emphasis that duplicates the semantic content of the mitigation instruction. Technical documents should convey urgency through precise language, not capitalization. The imperative "Do not hand-edit" carries the same meaning without shouting.
+- **Suggested Revision:** "Do not hand-edit; always regenerate via nbformat."
 
-#### Finding 3.1: Assumption Presented as Fact
-*   **Severity:** Major
-*   **Affected Scope:** Section 6 (Alternatives Considered), Line 117
-*   **Style Rationale:** "Better Kaggle compatibility documentation" for ngrok vs cloudflared is stated as objective fact without citation. Documentation quality is subjective and temporal; what is "better" today may change. This reads as opinion rather than measured evaluation.
-*   **Recommendation:** Cite evidence or reframe as observed experience.
-    *   *Before:* "Primary choice is ngrok due to better Kaggle compatibility documentation and simpler auth flow"
-    *   *After:* "Primary choice is ngrok based on existing community guides for Kaggle integration [cite if available] and token-based auth requiring no additional binary configuration"
+### 6. Vague Reference: "reference video" (multiple occurrences)
 
-#### Finding 3.2: Subjective Quality Judgment
-*   **Severity:** Nit
-*   **Affected Scope:** Section 6 (Alternatives Considered), Line 122
-*   **Style Rationale:** "Correct for this VRAM budget" uses normative language ("correct") where descriptive language is appropriate. Engineering decisions are trade-offs, not moral or logical absolutes. "Appropriate," "suitable," or "selected" maintains neutrality.
-*   **Recommendation:**
-    *   *Before:* "Single-threaded FIFO is correct for this VRAM budget"
-    *   *After:* "Single-threaded FIFO was selected to stay within dual-T4 VRAM constraints"
+- **Severity:** Major
+- **Affected Scope:** Lines 5, 59, 204
+- **Style Rationale:** "Reference video" appears three times without a stable identifier. A reader cannot locate or verify the source. The file structure lists `video1_metadata.txt` and `video2_metadata.txt` but the prose never links to them by name. Use explicit cross-references.
+- **Suggested Revision:** Replace each instance with a specific reference, e.g., "see `docs/transcripts/video1_metadata.txt`" or assign labels like "[Ref-V1]" and "[Ref-V2]."
 
----
+### 7. Passive Construction: "SQLite persistence deferred to Phase 2 post-MVP"
 
-### 4. BREVITY VIOLATIONS
+- **Severity:** Nit
+- **Affected Scope:** Section 3.3 (Queue System), Line 108
+- **Style Rationale:** "Deferred" is passive and omits the actor. State who made the decision or frame it as an explicit scope boundary.
+- **Suggested Revision:** "Phase 2 will add SQLite persistence. MVP uses in-memory storage only."
 
-#### Finding 4.1: Redundant Goal Restatement
-*   **Severity:** Nit
-*   **Affected Scope:** Section 2 (Overview) vs Section 3 (Goals)
-*   **Style Rationale:** Section 2 lines 14-19 and Section 3 lines 25-30 convey substantially identical information. The Overview lists capabilities that are immediately restated as Goals with minimal added value. This duplication increases maintenance burden and reading time.
-*   **Recommendation:** Consolidate. Keep Section 2 as a brief narrative summary (2-3 sentences max) and let Section 3 carry the enumerated, measurable specifications. Remove the numbered list from Section 2 entirely.
-    *   *Current Section 2:* 6-line numbered list mirroring Goals
-    *   *Proposed Section 2:* "A single Kaggle notebook (`setup.ipynb`) that installs ComfyUI, establishes an ngrok HTTPS tunnel, and runs a watchdog-protected SQLite job queue. Supports MiniMax H3 video and Flux/SDXL image generation with auto-recovery and VRAM safety controls."
+### 8. Ambiguous Scope: "Document ephemeral nature"
 
-#### Finding 4.2: Verbose Alternative Justifications
-*   **Severity:** Nit
-*   **Affected Scope:** Section 6 (Alternatives Considered), Lines 116-122
-*   **Style Rationale:** Several rejection reasons contain redundant clauses. For example, Line 118 explains SQLite is "embedded, zero-config, and persists across cell re-runs" — all three properties support the same point (no external broker needed). Two of these suffice.
-*   **Recommendation:** Tighten each row to one concise reason.
-    *   *Before (Line 118):* "Requires external broker service; violates zero-dependency constraint for ephemeral Kaggle containers. SQLite is embedded, zero-config, and persists across cell re-runs"
-    *   *After:* "Requires external broker; violates zero-dependency constraint. SQLite is embedded and persists across cell re-runs."
+- **Severity:** Major
+- **Affected Scope:** Section 6 (Risk Register), Line 172
+- **Style Rationale:** "Document ephemeral nature" is an action item disguised as a mitigation. It does not specify what documentation, where it lives, or what content it must contain. As a mitigation, it is unverifiable.
+- **Suggested Revision:** "Add warning banner to README §Troubleshooting: 'LocalTunnel URL changes on every kernel restart. Re-copy the URL from kernel logs after each restart.'"
+
+### 9. Synonym Redundancy: "Programmatic, validated, no indentation risk"
+
+- **Severity:** Nit
+- **Affected Scope:** Section 8 (Open Decisions), Line 205
+- **Style Rationale:** "Validated" and "no indentation risk" overlap. Validation in this context specifically means preventing indentation errors. Consolidate to avoid repeating the same concept.
+- **Suggested Revision:** "Programmatic generation prevents JSON indentation corruption."
+
+### 10. Imprecise NFR: "Must fit in 2x T4 (~30GB total)"
+
+- **Severity:** Nit
+- **Affected Scope:** Section 9 (Non-Functional Requirements), Line 210
+- **Style Rationale:** "~30GB" uses an approximation symbol in a requirements section. NFRs should state exact bounds. If 30GB is the hard limit, state "≤30GB." If it is an estimate, state the measured value and the margin.
+- **Suggested Revision:** "GPU memory: model + runtime ≤ 25GB; total allocation ≤ 30GB (2× T4)."
 
 ---
 
-### 5. STYLE FIXES SUMMARY
+## Compliance Summary
 
-| Location | Issue Type | Priority | Action Required |
-|----------|-----------|----------|-----------------|
-| Sec 1, L9 | Fluff | Nit | Replace "expensive" with "dedicated"; replace "solves" with "addresses" |
-| Sec 2, L14; Sec 3, L25 | Precision | Major | Add measurement conditions to "<5 min" setup claim |
-| Sec 3, L27; Sec 5.3, L91 | Precision | Nit | Clarify recovery time measurement window relative to poll interval |
-| Sec 6, L117 | Objectivity | Major | Cite or reframe "better documentation" claim |
-| Sec 6, L122 | Objectivity | Nit | Replace "correct" with "selected" or "appropriate" |
-| Sec 6, L122; Sec 7.5, L203 | Precision | Nit | Define "high-res video" with concrete resolution/fps parameters |
-| Sec 2 vs Sec 3 | Brevity | Nit | Consolidate Overview; remove duplicated numbered list |
-| Sec 6 table | Brevity | Nit | Tighten alternative rejection reasons to single concise statements |
+| Vector | Status | Count |
+|--------|--------|-------|
+| Hyperbole & Marketing Fluff | Minor issues | 1 (#4) |
+| Jargon & Buzzwords | Clean | 0 |
+| Filler Words & Wordiness | Minor issues | 2 (#2, #9) |
+| Subjective Quality Judgments | Present | 2 (#1, #3) |
+| Synonym Redundancy | Minor issues | 1 (#9) |
+| Passive Voice | Minor issues | 1 (#7) |
+| Cross-Reference Precision | Deficient | 2 (#6, #8) |
+| NFR Measurability | Imprecise | 1 (#10) |
 
----
-
-## Overall Assessment
-
-**Document Quality:** Good. The draft is technically substantive and avoids the worst AI writing patterns. No Blocker-level issues were found. Two Major findings require attention before the document can be considered implementation-ready: the unqualified setup time guarantee and the uncited comparative claim about ngrok documentation. All other findings are Nit-level refinements that would improve professionalism and reduce ambiguity but do not block development.
-
-**Compliance with Technical Writing Standards:** 85%. Strong use of tables, concrete schemas, and ASCII diagrams. Minor deductions for subjective language in alternatives section and duplicated content between Overview and Goals.
-
-**Recommended Next Step:** Apply Major fixes (2.1, 3.1) before proceeding to implementation. Nit fixes can be applied opportunistically during the resolve phase.
+**Overall Assessment:** Document is technically sound and mostly objective. Addressing the three Major findings (#1, #3, #6, #8) will significantly improve verifiability and precision. Nit findings are optional refinements.

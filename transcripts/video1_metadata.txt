@@ -1,0 +1,34 @@
+TITLE: Minimax H3 Free on Kaggle - 15 Second AI Video in 16 Minutes No GPU
+DESC: 🔗 GITHUB REPO (⭐ Star it!): https://tinyurl.com/buildgit
+
+Run MiniMax H-3 for FREE on Kaggle - no GPU needed. Generate up to 15 seconds of AI video with native sound in ~16 minutes using free Tesla T4s.
+
+This is the open-source MiniMax H-3 text-to-video model running on Kaggle's free GPUs. No local GPU, no watermark, no paid API. Just Copy & Edit the notebook, hit Run All, and open H-3 Studio. Full setup takes 15-30 mins once, then every video is 14-25 mins depending on settings.
+────────────────────────────
+For business inquiries, sponsorships, and brand collaborations:
+📧 info@thebuildai.tech
+────────────────────────────
+Affiliate Disclaimer: 
+I may receive commissions for purchases made through links in my posts and videos. This helps me continue creating free content for you. I only recommend products and services that I believe in and that I think will be helpful to my viewers. Thank you!
+────────────────────────────
+CHAPTERS:
+00:00 - Run Minimax H3 FREE on Kaggle, No GPU Needed
+00:44 - What is Minimax H3? 15 Sec Video + Sound
+01:50 - What You Need: Kaggle Account + Phone Verify + Internet ON
+02:29 - Open The Notebook: GitHub Link to Kaggle Copy & Edit
+02:55 - Critical Settings: GPU T4 x2 + Run All
+03:22 - Setup Takes 15-30 Mins: ComfyUI Runs in Background
+04:03 - If Notebook Stops: RAM Fix, Just Run All Again
+04:43 - Studio Settings: Prompt, Aspect Ratio, Draft / Standard / High, VDN 8-Step
+05:41 - Test 1: 15 Sec Draft in 16 Mins
+06:25 - Test 2: 12 Sec Highest Quality in 23 Mins
+06:56 - Test 3: Vertical Video Crash + 12 Sec Fix
+08:08 - 6 Tips to Save GPU Hours + License Note
+08:58 - Final Result: $50 Tool for $0, What Should I Test Next?
+
+WHAT YOU GET:
+Video Length: Up to 15 seconds with sound
+Speed: 10 sec in ~14 min with VDN 8-step, 15 sec draft in ~16 min, 12 sec highest quality in ~23-25 min
+Hardware: 2x Tesla T4 on Kaggle, ~30GB VRAM total, zero local GPU
+Cost: 100% free with ~30 free GPU hours per week
+Modes: Text-to-video, image-to-video, first-and-last-

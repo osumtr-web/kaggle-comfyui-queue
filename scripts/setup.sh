@@ -10,7 +10,7 @@ set -euo pipefail
 BASE_DIR="/kaggle/working"
 FLAG_FILE="${BASE_DIR}/setup_complete.flag"
 COMFYUI_REPO="https://github.com/comfyanonymous/ComfyUI.git"
-COMFYUI_COMMIT="a1b5c8d"
+COMFYUI_COMMIT="6b904b5fafd062effc1acbc46b1d3196922f7055"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 

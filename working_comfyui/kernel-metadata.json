@@ -1,0 +1,9 @@
+{
+ "id": "jalilososum/comfyui-working-localtunnel",
+ "title": "ComfyUI Working LocalTunnel",
+ "code_file": "../working_comfyui.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": false,
+ "enable_gpu": true
+}

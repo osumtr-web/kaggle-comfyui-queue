@@ -1,0 +1,9 @@
+{
+  "minimax_h3_video": 14336,
+  "flux_dev_image": 8192,
+  "sdxl_base": 6656,
+  "sd15_checkpoint": 2048,
+  "vae_decode_only": 512,
+  "controlnet_openpose": 1408,
+  "ip_adapter_plus": 1024
+}

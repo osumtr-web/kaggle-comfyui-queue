@@ -1,0 +1,9 @@
+{
+ "id": "jalilososum/comfyui-ultra-fast-ngrok",
+ "title": "ComfyUI Ultra Fast Ngrok",
+ "code_file": "../ultra_fast.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": false,
+ "enable_gpu": true
+}

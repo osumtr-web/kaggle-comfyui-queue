@@ -1,0 +1,9 @@
+{
+ "id": "jalilososum/comfyui-proven-service-watchdog",
+ "title": "ComfyUI Proven Service Watchdog",
+ "code_file": "../proven_service.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": false,
+ "enable_gpu": true
+}

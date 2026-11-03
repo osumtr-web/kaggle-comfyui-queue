@@ -93,7 +93,7 @@ if [ "$INSTALL_COMFYUI" -eq 1 ]; then
  if [ -d "$COMFYUI_DIR" ]; then
  info "Starting ComfyUI on :8188..."
  cd "$COMFYUI_DIR"
- nohup python3 main.py --listen 0.0.0.0 --port 8188 --multi-gpu \
+ nohup python3 main.py --listen 0.0.0.0 --port 8188 --lowvram \
  > /kaggle/working/comfyui.log 2>&1 &
  echo " PID: $!"
  cd "$WORKDIR"
@@ -196,6 +196,12 @@ else
  info "Watchdog skipped (not selected during install)."
 fi
 
+# --- Start GPU Session Guard (auto-stop to preserve 30h quota) ---
+info "Starting GPU Session Guard (idle auto-stop)..."
+nohup python3 scripts/gpu_session_guard.py > /kaggle/working/gpu_guard.log 2>&1 &
+echo " PID: $!"
+success "GPU Session Guard started."
+
 sleep 2
 
 # --- Summary ---
@@ -217,6 +223,7 @@ echo -e " ${BOLD}Active services:${NC}"
 [ "$INSTALL_QUEUE_API" -eq 1 ] && echo " ✓ Queue API (:8189)"
 [ "$INSTALL_QUEUE_CONSUMER" -eq 1 ] && echo " ✓ Queue Consumer"
 [ "$INSTALL_WATCHDOG" -eq 1 ] && echo " ✓ Watchdog"
+echo " ✓ GPU Session Guard (auto-stop)"
 echo ""
 echo -e " ${BOLD}Logs:${NC}"
 echo " ComfyUI: /kaggle/working/comfyui.log"
@@ -225,6 +232,7 @@ echo " ngrok: /kaggle/working/ngrok.log"
 echo " API: /kaggle/working/api.log"
 echo " Consumer: /kaggle/working/consumer.log"
 echo " Watchdog: /kaggle/working/watchdog_stdout.log"
+echo " GPU Guard: /kaggle/working/gpu_guard.log"
 echo ""
 if [ "$INSTALL_NGROK" -eq 1 ] && [ -f /kaggle/working/ngrok_url.txt ]; then
  echo " Test: curl -u kaggle:$COMFYUI_AUTH_PASSWORD $(cat /kaggle/working/ngrok_url.txt)/api/health"

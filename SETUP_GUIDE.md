@@ -48,6 +48,7 @@ If a cell stops mid-execution:
 
 | Setting | Recommendation |
 |---------|---------------|
+| Model Selection | Use `--model flux` (Image) or `--model minimax` (Video). **Only one per run.** |
 | Duration 15s | Use **Draft** or **Standard** quality only |
 | Best quality | Max **12 seconds** at High quality |
 | Prompt language | English works best |

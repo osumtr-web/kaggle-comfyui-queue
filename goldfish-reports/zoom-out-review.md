@@ -1,114 +1,116 @@
-# Zoom-Out Review: Kaggle ComfyUI Generation Queue Service
+# Zoom-Out Review: Kaggle ComfyUI Queue Design Draft
 
-* **Reviewer:** Skeptical Architect (Goldfish)
-* **Date:** 2026-11-03
-* **Target:** `/Users/jalil/Documents/kaggle-comfyui-queue/design_draft.md`
-* **Reference:** `/Users/jalil/Documents/kaggle-comfyui-queue/concepts_brief.md`
-
----
-
-## 1. OVERCOMPLEXITY FINDINGS
-
-### Finding 1.1: Separate FastAPI Process is Unnecessary Overhead
-* **Severity:** Major
-* **Affected Scope:** Section 5.2 (Component Breakdown), Section 7.1 (Files to Create), Task #3
-* **Simplicity Rationale:** The design proposes a standalone FastAPI server on port 8189 solely to wrap SQLite operations. For a single-user, single-container ephemeral environment, this introduces an entire additional process, PID to monitor, port to manage, and dependency (FastAPI + Uvicorn) to install. ComfyUI already runs a Python HTTP server with extensible routes. The queue API could be implemented as a ComfyUI custom node extension or, more simply, the queue consumer itself can expose a lightweight `aiohttp` or `http.server` endpoint since it already holds the SQLite connection. Alternatively, given that the primary interaction mode is programmatic job submission, a simple file-based drop directory or even direct SQLite manipulation via a shared library eliminates the HTTP layer entirely if remote REST access isn't strictly required beyond ngrok tunneling to ComfyUI's native UI.
-* **YAGNI Violation:** Building a separate microservice for what is effectively a local IPC mechanism in a monolithic ephemeral container.
-
-### Finding 1.2: Watchdog State Machine is Over-Engineered
-* **Severity:** Major
-* **Affected Scope:** Section 7.4 (Watchdog State Machine), Task #5
-* **Simplicity Rationale:** The design specifies a formal state machine with `MONITORING → RESTARTING → BACKOFF → MONITORING` transitions, exponential backoff logic, retry counters, and critical logging thresholds. For a Kaggle notebook where the user is present (or at least watching the output), a simple bash `while true` loop with `sleep 5` and unconditional restart is sufficient. If a process fails 5 times in a row, the notebook is broken and needs manual intervention — no amount of automated backoff will fix a corrupted ComfyUI install or exhausted disk. The state machine adds ~80 lines of asyncio code when 15 lines of bash achieves identical practical reliability.
-* **YAGNI Violation:** Formal fault-tolerance patterns designed for production SRE environments, not personal ephemeral notebooks.
-
-### Finding 1.3: Cloudflared Fallback Adds Dual-Tunnel Complexity
-* **Severity:** Nit
-* **Affected Scope:** Section 7.6 (ngrok Lifecycle), Task #6
-* **Simplicity Rationale:** The design includes cloudflared as an automatic fallback if ngrok token is missing. This means `ngrok_launcher.py` must handle two completely different binary interfaces, parse two different output formats, and maintain two sets of error handling. For a personal tool, the user either has an ngrok token or they don't. If they don't, printing "Please set KAGGLE_SECRET_NGROK_TOKEN" is sufficient. Auto-fallback to a second tunnel provider doubles the surface area of the most fragile component (external tunnel binaries) for marginal convenience.
-* **YAGNI Violation:** Speculative redundancy for a failure mode (missing secret) that has a trivial manual resolution.
-
-### Finding 1.4: Priority Queue Field is Premature
-* **Severity:** Nit
-* **Affected Scope:** Section 7.2 (SQLite Schema), Section 7.3 (API Contract)
-* **Simplicity Rationale:** The schema includes `priority INTEGER` and the API accepts priority parameters. For a single-user sequential queue on hardware that can only process one job at a time, FIFO ordering is sufficient. Priority scheduling only matters when there's contention from multiple users or parallel workers — both explicitly out of scope (NG1, NG3). Adding priority now means the consumer query must sort by priority, the API must validate it, and tests must cover ordering edge cases, all for a feature that will never be exercised.
-* **YAGNI Violation:** Multi-tenant scheduling abstraction in a single-tenant sequential system.
+**Reviewer**: Skeptical Architect (Zoom Out Goldfish)  
+**Target**: `docs/architecture/design_draft.md`  
+**Date**: 2026-11-03  
+**Mode**: REVIEW  
 
 ---
 
-## 2. SIMPLIFICATION OPPORTUNITIES
+## Executive Summary
 
-### Opportunity 2.1: Use ComfyUI's Built-in Queue Instead of Custom SQLite Queue
-* **Severity:** Blocker
-* **Dimension:** Code Minimization & Reinventing the Wheel
-* **Challenge/Risk:** The design builds an entire custom queue system (SQLite schema, consumer loop, status tracking, history polling) that duplicates functionality ComfyUI already provides natively. ComfyUI has a built-in prompt queue accessible via `/prompt`, `/queue`, and `/history` endpoints. It already tracks prompt status, manages execution order, and stores results. Building a parallel queue means maintaining two sources of truth, synchronizing state between them, and debugging race conditions.
-* **Alternative / Reuse Opportunity:** Use ComfyUI's native queue as the primary job store. The custom layer should be a thin wrapper that persists jobs to SQLite only for cross-cell-re-run durability (since ComfyUI's in-memory queue dies on restart), then replays pending jobs into ComfyUI's native queue on startup. This eliminates the custom consumer polling loop, the `/history` polling logic, and the VRAM check integration (ComfyUI handles its own memory management). Estimated code reduction: ~60% of `queue_consumer.py`.
-
-### Opportunity 2.2: Replace Custom Watchdog with Supervisord or Simple Bash Loop
-* **Severity:** Major
-* **Dimension:** Existing Tool Reuse
-* **Challenge/Risk:** Writing a custom Python asyncio watchdog daemon (~100+ lines) for process supervision in an environment where `supervisord` is likely pre-installed or trivially pip-installable. Supervisord handles auto-restart, backoff, logging, and PID management declaratively via INI config. Even simpler: a 10-line bash script with `while true; do python x.py || sleep 5; done` per process covers the actual failure modes of a Kaggle notebook.
-* **Alternative / Reuse Opportunity:** Either use `supervisord` with a static config file, or replace `watchdog.py` entirely with inline bash in the notebook cell. Eliminates Task #5 as a Python artifact.
-
-### Opportunity 2.3: Eliminate Separate Setup Script — Inline in Notebook Cells
-* **Severity:** Major
-* **Dimension:** YAGNI & Environment Alignment
-* **Challenge/Risk:** The design creates `scripts/setup.sh` as a separate bash artifact that the notebook calls. But the concepts brief states "One-click Kaggle notebook" and "No external scripts required at runtime." A separate shell script means the user must upload/manage two files, and the notebook depends on filesystem state outside itself. Kaggle notebooks support `!bash` cell magic directly.
-* **Alternative / Reuse Opportunity:** Inline all setup logic directly into notebook cells using `!git clone`, `!pip install`, etc. The `setup_complete.flag` sentinel pattern works identically inline. This makes the notebook truly self-contained and matches the stated goal of "single notebook entry point."
+The design draft proposes a simplified architecture that **conflicts with and duplicates** substantial existing infrastructure already implemented in the codebase. The document describes a "Phase 2" queue system using in-memory storage and a shell-based watchdog, while production-grade Python implementations (`watchdog.py`, `queue_api.py`, `queue_consumer.py`) with SQLite persistence, async consumers, VRAM management, and authentication already exist. Following this design would constitute a **regression** to a less capable system.
 
 ---
 
-## 3. ARCHITECTURE ALIGNMENT
+## Findings
 
-### Alignment Check 3.1: Concepts Brief vs Design Draft Consistency ✅
-The design correctly reflects the core constraints from the concepts brief:
-- Single-container, ephemeral environment ✓
-- SQLite over Redis/RabbitMQ ✓  
-- Single-threaded consumer (no multi-worker) ✓
-- ngrok primary with cloudflared fallback ✓
-- Watchdog necessity acknowledged ✓
-- Model caching in `/kaggle/working/` ✓
+### 1. CRITICAL: Design Proposes Reinventing Existing Production Components
 
-### Alignment Check 3.2: Drift Toward Production-Grade Patterns ⚠️
-While the high-level choices align, the implementation details drift toward production service patterns that contradict the ephemeral personal-tool philosophy:
-- Separate FastAPI microservice suggests distributed system thinking rather than notebook-integrated tooling
-- Formal watchdog state machine suggests SRE-grade reliability requirements
-- Priority queue suggests multi-user contention modeling
-- These are not wrong per se, but they increase maintenance burden and setup time without proportional benefit in the stated use case.
+- **Severity**: Blocker  
+- **Affected Scope**: Sections 3.2 (Watchdog), 3.3 (Queue System), 4 (File Structure)  
+- **Simplicity Rationale**:  
+  The design specifies:
+  - A 10-line bash `watchdog.sh` with `while true` loop (Section 3.2)
+  - An in-memory `collections.deque` queue with Flask/FastAPI endpoints as a ComfyUI custom node (Section 3.3)
+  - SQLite "deferred to Phase 2 post-MVP" (Section 3.3)
 
-### Alignment Check 3.3: Missing Constraint — Setup Time Budget ⚠️
-Concepts brief mandates "<5 minutes to ready state." The design does not estimate or validate setup duration. Installing ComfyUI + PyTorch + custom nodes + downloading multi-GB models + installing FastAPI + supervisord dependencies may exceed this budget. The design should include explicit timing benchmarks or defer large model downloads to first-use lazy loading.
+  **Existing reality**:
+  - `scripts/watchdog.py` (615 lines): Full async process manager with state machine (MONITORING→RESTARTING→BACKOFF), exponential backoff, PID persistence, graceful SIGTERM shutdown, output rotation, health file writing, and multi-process orchestration (comfyui, ngrok, consumer, api).
+  - `scripts/queue_api.py` (772 lines): FastAPI service with HTTP Basic auth, SQLite WAL mode, workflow allowlist, payload validation, model registry endpoints, artifact serving with MIME detection, and `/api/health` metrics.
+  - `scripts/queue_consumer.py` (955 lines): Async consumer with VRAM/RAM pre-checks, heartbeat-based orphan recovery, retry with transient/permanent error classification, Ollama LLM dispatch, SQLite backup, and graceful shutdown coordination.
+
+  **Verdict**: The design describes building MVP components that already exist in superior form. Implementing Section 3.2–3.3 as written would delete ~2,300 lines of tested infrastructure and replace it with fragile shell scripts and volatile in-memory state. This is not simplification—it is destruction of working code.
 
 ---
 
-## 4. RECOMMENDATIONS
+### 2. MAJOR: Tunnel Tool Contradiction (LocalTunnel vs ngrok)
 
-### Recommendation R1: Collapse Queue API into ComfyUI Custom Node [BLOCKER]
-Replace the standalone FastAPI server with a ComfyUI custom node that extends ComfyUI's existing HTTP server with `/api/jobs/*` routes. This eliminates:
-- One process (no `queue_api.py` PID to monitor)
-- One port (no 8189)
-- One dependency (no FastAPI/Uvicorn install)
-- Inter-process SQLite contention (custom node shares ComfyUI's event loop)
+- **Severity**: Major  
+- **Affected Scope**: Sections 2 (Architecture Diagram), 3.4 (LocalTunnel Integration), 8 (Open Decisions)  
+- **Simplicity Rationale**:  
+  The design mandates LocalTunnel throughout (diagram, Section 3.4, decision table) citing "no auth token required." However, the existing codebase uses **ngrok exclusively**:
+  - `scripts/ngrok_launcher.py` exists
+  - `start.sh` lines 137–167 implement ngrok startup with API URL discovery
+  - `watchdog.py` line 203 defines ngrok process spec with `--basic-auth`
+  - `queue_api.py` lines 722–729 read `ngrok_url.txt` for health endpoint
+  - `config/auth.env` pattern in `start.sh` manages `NGROK_AUTHTOKEN`
 
-If remote REST access to the queue is needed, it goes through the same ngrok tunnel as ComfyUI's native UI. Zero additional infrastructure.
-
-### Recommendation R2: Delete Watchdog Python, Use Inline Bash [MAJOR]
-Replace `scripts/watchdog.py` with three lines per monitored process in the notebook:
-```bash
-!while true; do python scripts/queue_consumer.py; echo "Consumer crashed, restarting in 5s"; sleep 5; done &
-```
-This is visible, debuggable, requires no Python async expertise, and matches the transparency expectations of a notebook environment. If a process keeps crashing, the user sees it in real-time output rather than parsing `watchdog.log`.
-
-### Recommendation R3: Remove Priority Field from Schema [NIT]
-Delete `priority` column and all related sorting logic. FIFO via `id ASC` is sufficient. Can be added later if actual multi-user contention emerges (which NG1/NG3 explicitly rule out).
-
-### Recommendation R4: Make Cloudflared Manual, Not Automatic [NIT]
-Remove auto-fallback logic from `ngrok_launcher.py`. If `KAGGLE_SECRET_NGROK_TOKEN` is unset, print instructions and exit. User can manually switch to cloudflared if needed. Halves the tunnel launcher complexity.
-
-### Recommendation R5: Validate Setup Time Budget Before Implementation [MAJOR]
-Before writing any code, run a timed dry-run of the full setup sequence on Kaggle. If it exceeds 5 minutes, restructure to lazy-load models on first job rather than during setup. Document actual measured times in the design.
+  Switching to LocalTunnel would break the entire existing service orchestration. The "no auth token" advantage is moot since the codebase already handles ngrok tokens via Kaggle Secrets and env files. The design's rationale does not account for the migration cost or the fact that ngrok provides stable subdomains (addressing Risk #2 in Section 6).
 
 ---
 
-## Summary
+### 3. MAJOR: Notebook Generation Ignores Existing Shell-Based Deployment
 
-The design makes correct high-level technology choices (ComfyUI, SQLite, ngrok, single-threaded consumer) but over-engineers the implementation layer with production-service patterns inappropriate for an ephemeral single-user notebook. The highest-impact simplification is leveraging ComfyUI's native queue and HTTP server instead of building parallel infrastructure. The watchdog and tunnel fallback logic should be drastically simplified to match the actual reliability requirements of a personal Kaggle tool. Implementing these recommendations would reduce custom Python code by approximately 40-50% while improving alignment with the stated constraints.
+- **Severity**: Major  
+- **Affected Scope**: Section 3.1 (Notebook Generation), Section 5 (Implementation Tasks T1–T3)  
+- **Simplicity Rationale**:  
+  The design prescribes generating a 6-cell notebook via `nbformat` as the primary deployment mechanism. However, the codebase already has a complete shell-based deployment pipeline:
+  - `install.sh`: Interactive installer with service selection
+  - `start.sh`: Service launcher with stale process cleanup, readiness probes, and ngrok URL discovery
+  - `bootstrap.sh`: Initial setup script
+
+  These scripts handle the same concerns (clone, install, configure, start) without notebook JSON fragility. The design's obsession with `nbformat` generation solves a problem ("indentation errors") that the shell pipeline doesn't have. If notebook deployment is still desired, it should wrap the existing shell scripts rather than reimplement installation logic in Python cells.
+
+---
+
+### 4. MAJOR: Queue as Custom Node vs Standalone Service Architecture Mismatch
+
+- **Severity**: Major  
+- **Affected Scope**: Section 3.3, Section 8 (Open Decisions)  
+- **Simplicity Rationale**:  
+  The design recommends "ComfyUI custom node (native)" for the queue, citing "zero extra dependencies." The existing architecture uses a **standalone FastAPI service on port 8189** with a separate consumer process. This is architecturally superior because:
+  - ComfyUI's native server is single-threaded and blocks on GPU work; embedding queue logic there creates contention
+  - Separate processes allow independent restart (watchdog manages 4 processes independently)
+  - Port separation (8188 for UI, 8189 for API) enables clean routing through tunnels
+  - Authentication is enforced at the API layer without modifying ComfyUI internals
+
+  The "zero dependencies" argument is false—FastAPI/uvicorn are already installed and running. Reverting to a custom node would couple queue reliability to ComfyUI's lifecycle and eliminate the existing multi-process resilience model.
+
+---
+
+### 5. NIT: Model Stack Section Omits Existing Model Registry
+
+- **Severity**: Nit  
+- **Affected Scope**: Section 3.5 (Model Stack)  
+- **Simplicity Rationale**:  
+  The design lists a static model stack (Moonmaster Krea2 Turbo + fallback). The codebase has `scripts/model_registry.py` with dynamic HuggingFace download, VRAM estimation, type classification, and install/uninstall APIs exposed via `queue_api.py` endpoints (`/api/models`, `/api/models/install`). The design should reference this registry rather than hardcoding model URLs, especially since CivitAI rate-limiting (Risk #1) is already mitigated by the registry's HF-native workflow.
+
+---
+
+### 6. NIT: File Structure Lists Nonexistent `custom_nodes/comfyui_queue/`
+
+- **Severity**: Nit  
+- **Affected Scope**: Section 4 (File Structure)  
+- **Simplicity Rationale**:  
+  The proposed `custom_nodes/comfyui_queue/{__init__.py, queue_manager.py, routes.py}` directory does not exist and should not be created. The actual queue implementation lives in `scripts/{queue_api.py, queue_consumer.py, model_registry.py}`. The file structure section should reflect reality.
+
+---
+
+## Recommendations
+
+1. **Discard Sections 3.2 and 3.3 entirely**. Replace with references to existing `scripts/watchdog.py`, `scripts/queue_api.py`, and `scripts/queue_consumer.py`. Document their architecture instead of proposing new ones.
+
+2. **Resolve the tunnel decision**. Either update the design to match the existing ngrok infrastructure, or provide a concrete migration plan with justification that accounts for the ~200 lines of ngrok-specific code that would need replacement.
+
+3. **Reframe notebook generation as optional**. Position `generate_notebook.py` as an alternative deployment path that invokes the existing shell scripts, not as the primary mechanism.
+
+4. **Update Section 5 tasks**. T5 ("Implement custom_nodes/comfyui_queue/") should be replaced with "Verify existing queue_api.py and queue_consumer.py meet requirements." T1–T3 should be re-evaluated against the existing `install.sh`/`start.sh` pipeline.
+
+5. **Align risk register with reality**. Risk #5 ("Queue state lost on kernel restart") is already mitigated by SQLite WAL mode in the existing implementation. Risk #2 ("LocalTunnel subdomain changes") is irrelevant if ngrok is retained.
+
+---
+
+## Verdict
+
+**BLOCKED**. The design draft describes a system that is strictly inferior to what already exists. Proceeding with implementation as specified would constitute architectural regression. The document must be rewritten to describe the *actual* architecture and identify genuine gaps, rather than proposing greenfield components that duplicate solved problems.

@@ -254,7 +254,7 @@ class ModelRegistry:
         log.info(
             "model_install_start",
             extra={"event": "model_install_start", "hf_repo": hf_repo,
-                   "model_type": model_type, "filename": filename},
+                   "model_type": model_type, "model_filename": filename},
         )
 
         try:

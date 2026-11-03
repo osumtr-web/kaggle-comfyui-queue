@@ -195,6 +195,8 @@ def build_process_specs() -> Dict[str, ProcessSpec]:
                 "--listen", "0.0.0.0",
                 "--port", "8188",
                 "--multi-gpu",
+                "--fp16-vae",           # T4 does not support bfloat16; force FP16 VAE
+                "--lowvram",            # Safety default: offload layers to CPU RAM to prevent OOM on 2×T4
                 "--disable-auto-launch-browser",
             ],
             cwd="/kaggle/working/ComfyUI",
@@ -570,10 +572,20 @@ async def main(dry_run: bool = False) -> None:
 
     last_health_write = 0.0
     last_output_check = 0.0
+    last_heartbeat_print = 0.0
+    HEARTBEAT_PRINT_INTERVAL = 300.0  # 5 minutes — prevents Kaggle 20-min idle timeout
 
     try:
         while not shutdown_event.is_set():
             now = time.monotonic()
+
+            # Idle-timeout heartbeat: print status every 5 min so Kaggle doesn't kill the kernel
+            if now - last_heartbeat_print >= HEARTBEAT_PRINT_INTERVAL:
+                alive = {name: pid_alive(pm.pids.get(name)) for name in pm.specs}
+                log_event(logging.INFO, "idle_heartbeat",
+                          f"[{datetime.now(timezone.utc).isoformat()}] Watchdog heartbeat: {alive}",
+                          component="watchdog")
+                last_heartbeat_print = now
 
             # State machine tick
             await pm.tick()

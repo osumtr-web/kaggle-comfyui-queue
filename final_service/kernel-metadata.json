@@ -1,0 +1,9 @@
+{
+ "id": "jalilososum/comfyui-final-service-ngrok",
+ "title": "ComfyUI Final Service Ngrok",
+ "code_file": "../final_service.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": false,
+ "enable_gpu": true
+}

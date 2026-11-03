@@ -1,0 +1,9 @@
+{
+ "id": "jalilososum/comfyui-fast-start-ngrok",
+ "title": "ComfyUI Fast Start Ngrok",
+ "code_file": "../fast_start.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": false,
+ "enable_gpu": true
+}

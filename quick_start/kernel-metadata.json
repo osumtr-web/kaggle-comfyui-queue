@@ -1,0 +1,9 @@
+{
+ "id": "jalilososum/comfyui-quick-start-sdxl-turbo",
+ "title": "ComfyUI Quick Start SDXL Turbo",
+ "code_file": "quick_start.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": false,
+ "enable_gpu": true
+}

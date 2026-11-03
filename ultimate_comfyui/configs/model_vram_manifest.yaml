@@ -1,0 +1,29 @@
+# Model VRAM Manifest
+# Maps model identifier to estimated VRAM footprint and file paths.
+# Used by queue_consumer.py Stage 1 static estimation before dispatch.
+
+minimax_h3_fp16:
+  vram_mb: 18000
+  files:
+    - "checkpoints/minimax_h3.safetensors"
+  description: "MiniMax H3 33B text-to-video diffusion transformer, fp16"
+
+flux_dev_fp16:
+  vram_mb: 12000
+  files:
+    - "unet/flux_dev.safetensors"
+    - "clip/clip_l.safetensors"
+    - "vae/ae.safetensors"
+  description: "FLUX.1-dev text-to-image model, fp16"
+
+sdxl_base_fp16:
+  vram_mb: 8000
+  files:
+    - "checkpoints/sdxl_base.safetensors"
+  description: "Stable Diffusion XL Base 1.0, fp16"
+
+minimax_h3_fused_turbo_int8:
+  vram_mb: 10000
+  files:
+    - "checkpoints/minimax_h3_fused_turbo_int8.safetensors"
+  description: "MiniMax H3 Fused Turbo INT8 quantized, faster inference lower VRAM"

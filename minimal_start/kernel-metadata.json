@@ -1,0 +1,9 @@
+{
+ "id": "jalilososum/comfyui-minimal-start",
+ "title": "ComfyUI Minimal Start",
+ "code_file": "../minimal_start.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": false,
+ "enable_gpu": true
+}
