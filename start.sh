@@ -98,14 +98,19 @@ if [ "$INSTALL_COMFYUI" -eq 1 ]; then
  echo " PID: $!"
  cd "$WORKDIR"
 
- info "Waiting for ComfyUI ready..."
- for i in $(seq 1 60); do
+ info "Waiting for ComfyUI ready (up to 300s for large models)..."
+ for i in $(seq 1 150); do
  if curl -s http://127.0.0.1:8188/system_stats > /dev/null 2>&1; then
  success "ComfyUI ready on :8188"
  break
  fi
  sleep 2
  done
+ if ! curl -s http://127.0.0.1:8188/system_stats > /dev/null 2>&1; then
+ err "ComfyUI failed to start within 300s. Check /kaggle/working/comfyui.log"
+ cat /kaggle/working/comfyui.log | tail -20
+ exit 1
+ fi
  else
  warn "ComfyUI directory not found. Skipping."
  fi
