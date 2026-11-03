@@ -16,6 +16,7 @@ success() { echo -e "${GREEN}✓${NC} $1"; }
 
 GITHUB_TOKEN="${1:-}"
 USE_CASE="${2:-comfyui}"
+MODEL_ID="${3:-flux}"
 REPO_URL="https://github.com/osumtr-web/kaggle-comfyui-queue.git"
 INSTALL_DIR="/kaggle/working/kaggle-comfyui-queue"
 
@@ -101,7 +102,7 @@ case "$USE_CASE" in
 esac
 
 if [ -f install.sh ]; then
-    bash install.sh $INSTALL_ARGS 2>&1
+    bash install.sh $INSTALL_ARGS --model "$MODEL_ID" 2>&1
     if [ $? -ne 0 ]; then
         err "install.sh failed with exit code $?"
         err "Check output above for details"
