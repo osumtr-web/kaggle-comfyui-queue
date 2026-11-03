@@ -33,6 +33,7 @@ WORKDIR="/kaggle/working/kaggle-comfyui-queue"
 FLAG="/kaggle/working/.kgpu_installed"
 CHOICES_FILE="/kaggle/working/.kgpu_choices"
 USE_CASE=""
+MODEL_ID=""
 NON_INTERACTIVE=0
 
 # Unified auth config (edit config/auth.env and git push to change password everywhere)
